@@ -2,515 +2,480 @@
 <!doctype html>
 <html lang="bn">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>প্রশ্বাস | Nebulizer Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --bg: #eef6fb;
-      --panel: rgba(255,255,255,.86);
-      --panel2: #ffffff;
-      --ink: #0b2545;
-      --muted: #65758b;
-      --line: #d7e6ef;
-      --blue: #0f7de8;
-      --blue2: #075db7;
-      --teal: #00a8a8;
-      --green: #16a56d;
-      --red: #d84242;
-      --amber: #f59e0b;
-      --shadow: 0 22px 60px rgba(20, 79, 125, .16);
-      --radius: 24px;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 15% 10%, #ffffff 0, rgba(255,255,255,0) 28%),
-        radial-gradient(circle at 90% 0%, #d6f5ff 0, rgba(214,245,255,0) 34%),
-        linear-gradient(135deg, #f8fcff 0%, var(--bg) 55%, #edf9f7 100%);
-      min-height: 100vh;
-      color: var(--ink);
-    }
-    .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-    aside {
-      padding: 26px;
-      background: rgba(255,255,255,.72);
-      border-right: 1px solid var(--line);
-      backdrop-filter: blur(18px);
-      position: sticky;
-      top: 0;
-      height: 100vh;
-    }
-    .brand { display: flex; gap: 14px; align-items: center; margin-bottom: 30px; }
-    .logo {
-      width: 56px; height: 56px; border-radius: 20px;
-      background: linear-gradient(135deg, #0077ff, #02b7a8);
-      color: white; display: grid; place-items: center;
-      font-weight: 900; font-size: 20px; box-shadow: var(--shadow);
-    }
-    .brand h1 { margin: 0; font-size: 30px; letter-spacing: -.5px; }
-    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
-    nav { display: grid; gap: 10px; }
-    .navbtn {
-      border: 0; width: 100%; text-align: left; padding: 14px 16px; border-radius: 18px;
-      background: transparent; color: var(--muted); font-weight: 800; cursor: pointer;
-      font-size: 15px;
-    }
-    .navbtn.active { background: linear-gradient(135deg, #0f7de8, #00aaa5); color: white; box-shadow: 0 16px 34px rgba(15,125,232,.22); }
-    .mini { margin-top: 28px; padding: 16px; border-radius: 20px; background: #f7fbff; border: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.55; }
-    main { padding: 28px; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
-    .title h2 { margin: 0; font-size: 28px; }
-    .title p { margin: 5px 0 0; color: var(--muted); }
-    .status-pill { padding: 10px 14px; border-radius: 999px; background: #ecfdf7; color: var(--green); font-weight: 900; border: 1px solid #b9f2dc; }
-    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
-    .card {
-      grid-column: span 12;
-      background: var(--panel);
-      border: 1px solid rgba(215,230,239,.95);
-      border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
-    }
-    .span4 { grid-column: span 4; }
-    .span5 { grid-column: span 5; }
-    .span6 { grid-column: span 6; }
-    .span7 { grid-column: span 7; }
-    .stat { min-height: 134px; position: relative; overflow: hidden; }
-    .stat:after { content: ''; position: absolute; right: -30px; bottom: -35px; width: 120px; height: 120px; border-radius: 50%; background: rgba(15,125,232,.08); }
-    .stat strong { font-size: 42px; display: block; margin-top: 10px; }
-    .stat span { color: var(--muted); font-weight: 800; }
-    h3 { margin: 0 0 14px; font-size: 20px; }
-    label { display: block; color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; margin: 13px 0 7px; }
-    input, select, textarea {
-      width: 100%; border: 1px solid var(--line); border-radius: 15px; padding: 13px 14px; background: #fbfdff;
-      outline: none; color: var(--ink); font-size: 15px;
-    }
-    textarea { min-height: 84px; resize: vertical; }
-    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(15,125,232,.10); }
-    .row { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-    button.primary, button.secondary, button.danger {
-      border: 0; border-radius: 15px; padding: 12px 16px; cursor: pointer; font-weight: 900; font-size: 14px;
-    }
-    button.primary { color: white; background: linear-gradient(135deg, var(--blue), var(--teal)); }
-    button.secondary { color: var(--ink); background: #eef6fb; border: 1px solid var(--line); }
-    button.danger { color: white; background: var(--red); }
-    .patient-box { padding: 15px; border-radius: 18px; background: #f7fbff; border: 1px solid var(--line); margin-top: 12px; }
-    .patient-box strong { display: block; }
-    .result { display: grid; gap: 8px; margin-top: 12px; }
-    .result button { text-align: left; border: 1px solid var(--line); background: white; border-radius: 15px; padding: 12px; cursor: pointer; }
-    video { width: 100%; border-radius: 22px; background: #061425; min-height: 260px; object-fit: cover; border: 1px solid var(--line); }
-    .qr-target {
-      min-height: 210px; display: grid; place-items: center; border: 1px dashed #9cc4dd; border-radius: 22px;
-      background: linear-gradient(135deg, #fafdff, #eef9ff);
-      color: var(--muted); text-align: center; padding: 16px;
-    }
-    .device-id { font-size: 26px; font-weight: 1000; color: var(--blue2); letter-spacing: .08em; }
-    .table-wrap { overflow: auto; border-radius: 18px; border: 1px solid var(--line); }
-    table { width: 100%; border-collapse: collapse; min-width: 960px; background: white; }
-    th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; vertical-align: top; }
-    th { background: #f1f8fc; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
-    .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 900; font-size: 12px; }
-    .assigned { background: #eff6ff; color: var(--blue); }
-    .running { background: #fff7ed; color: var(--amber); }
-    .completed { background: #ecfdf5; color: var(--green); }
-    .cancelled { background: #fef2f2; color: var(--red); }
-    .hide { display: none !important; }
-    .toast { position: fixed; right: 22px; bottom: 22px; max-width: 360px; background: #061425; color: white; padding: 14px 16px; border-radius: 16px; box-shadow: var(--shadow); z-index: 20; }
-    @media (max-width: 920px) {
-      .app { grid-template-columns: 1fr; }
-      aside { position: relative; height: auto; padding: 18px; }
-      nav { grid-template-columns: repeat(2, 1fr); }
-      main { padding: 18px; }
-      .span4,.span5,.span6,.span7 { grid-column: span 12; }
-      .row { grid-template-columns: 1fr; }
-      .topbar { align-items: flex-start; flex-direction: column; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>প্রশ্বাস — Dynamic QR Patient Connect</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Hind+Siliguri:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9eef4;
+  --bg2:#f3f6fa;
+  --ink:#152238;
+  --muted:#66798f;
+  --line:rgba(21,34,56,.08);
+  --teal:#0fada0;
+  --teal-deep:#0a8a80;
+  --blue:#3468e0;
+  --amber:#e7a53c;
+  --red:#dd5555;
+  --green:#189a72;
+  --r:26px;
+  --shadow-out: 9px 9px 18px rgba(163,177,198,.55), -9px -9px 18px rgba(255,255,255,.85);
+  --shadow-out-sm: 5px 5px 11px rgba(163,177,198,.5), -5px -5px 11px rgba(255,255,255,.8);
+  --shadow-in: inset 5px 5px 10px rgba(163,177,198,.45), inset -5px -5px 10px rgba(255,255,255,.75);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;color:var(--ink);background:var(--bg);
+  font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.bn{font-family:'Hind Siliguri','Inter',sans-serif}
+.display{font-family:'Sora','Inter',sans-serif}
+
+#netbg{position:fixed;inset:0;z-index:0;pointer-events:none;display:block}
+@media (prefers-reduced-motion: reduce){ #netbg{display:none} }
+
+.shell{position:relative;z-index:1;max-width:1220px;margin:auto;padding:16px clamp(12px,3vw,22px) 60px}
+
+.top{
+  position:sticky;top:12px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:12px 16px;border-radius:28px;background:var(--bg2);box-shadow:var(--shadow-out);
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{
+  width:50px;height:50px;flex:none;border-radius:17px;background:linear-gradient(150deg,var(--teal),var(--blue));
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px;box-shadow:var(--shadow-out-sm);
+  font-family:'Sora',sans-serif;
+}
+h1{margin:0;font-size:clamp(20px,3.4vw,28px);line-height:1.1;font-weight:700}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav button{
+  border:0;background:transparent;border-radius:15px;padding:11px 14px;font-weight:700;color:var(--muted);
+  cursor:pointer;font-size:13.5px;transition:.18s;
+}
+.nav button.active,.nav button:hover{color:#fff;background:linear-gradient(135deg,var(--teal),var(--blue));box-shadow:var(--shadow-out-sm)}
+.online{font-size:12px;font-weight:800;color:var(--green);background:var(--bg2);box-shadow:var(--shadow-in);padding:9px 13px;border-radius:999px;white-space:nowrap}
+.online.bad{color:var(--red)}
+
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin:20px 0}
+.card{background:var(--bg2);border-radius:var(--r);box-shadow:var(--shadow-out);padding:22px}
+.hero h2{font-size:clamp(22px,3.2vw,30px);margin:0 0 8px;letter-spacing:-.3px;font-weight:700}
+.hero p,.hint{color:var(--muted);line-height:1.65;margin:0;font-size:14.5px}
+.summary{display:grid;gap:10px}
+.summary div{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--bg2);box-shadow:var(--shadow-in);border-radius:16px;padding:12px 14px}
+.summary span{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.summary strong{text-align:right;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+
+.stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.step{border-radius:20px;background:var(--bg2);box-shadow:var(--shadow-out-sm);padding:13px;display:flex;gap:11px;align-items:center;cursor:pointer;transition:.18s}
+.no{width:38px;height:38px;flex:none;border-radius:13px;display:grid;place-items:center;background:var(--bg2);box-shadow:var(--shadow-in);color:var(--blue);font-weight:800;font-family:'Sora',sans-serif}
+.step b{display:block;font-size:14px}
+.step small{color:var(--muted);font-weight:600;font-size:12px}
+.step.active{box-shadow:var(--shadow-in)}
+.step.active .no{background:linear-gradient(135deg,var(--teal),var(--blue));color:#fff;box-shadow:none}
+.step.done .no{color:var(--green)}
+
+.view{display:none}.view.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}
+.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}
+h3{margin:0 0 14px;font-size:19px;font-weight:700}
+label{display:block;margin:12px 0 7px;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+input,select,textarea{
+  width:100%;border:0;background:var(--bg2);color:var(--ink);outline:none;border-radius:15px;
+  padding:13px 14px;font-size:15px;box-shadow:var(--shadow-in);font-family:inherit;
+}
+input::placeholder,textarea::placeholder{color:#9aabbc}
+input:focus,select:focus,textarea:focus{box-shadow:var(--shadow-in), 0 0 0 3px rgba(52,104,224,.25)}
+textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.right{justify-content:flex-end}
+button.primary,button.secondary,button.ghost{border:0;border-radius:15px;padding:13px 17px;font-size:13.5px;font-weight:800;cursor:pointer;transition:.15s;font-family:inherit}
+.primary{background:linear-gradient(135deg,var(--teal),var(--blue));color:#fff;box-shadow:var(--shadow-out-sm)}
+.primary:active{box-shadow:var(--shadow-in)}
+.secondary{background:var(--bg2);color:var(--ink);box-shadow:var(--shadow-out-sm)}
+.secondary:active{box-shadow:var(--shadow-in)}
+.ghost{background:transparent;color:var(--blue);box-shadow:var(--shadow-in)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.results{display:grid;gap:9px;margin-top:14px;max-height:340px;overflow:auto}
+.person{border-radius:16px;background:var(--bg2);box-shadow:var(--shadow-out-sm);padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:12px;transition:.15s}
+.person:hover{box-shadow:var(--shadow-in)}
+.person small{display:block;color:var(--muted);margin-top:3px}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:7px 11px;background:var(--bg2);box-shadow:var(--shadow-in);color:var(--blue);font-weight:800;font-size:11.5px;white-space:nowrap}
+.selected{border-radius:16px;background:var(--bg2);box-shadow:var(--shadow-in);padding:14px;margin-top:14px;color:var(--teal-deep)}
+.selected b{display:block;color:var(--teal-deep);font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.scanbox{border-radius:24px;background:var(--bg2);box-shadow:var(--shadow-in);padding:16px;min-height:260px;display:grid;place-items:center;text-align:center;color:var(--muted)}
+video{width:100%;max-height:320px;object-fit:cover;border-radius:20px;background:#061425}
+.deviceMock{border-radius:24px;background:#0a1a2e;color:#eaffff;padding:20px;display:grid;place-items:center;min-height:270px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow-out)}
+.deviceMock:before{content:"";position:absolute;width:210px;height:210px;border:1px solid rgba(255,255,255,.12);border-radius:50%;top:26px;left:calc(50% - 105px);animation:pulseRing 3.4s ease-in-out infinite}
+@keyframes pulseRing{0%,100%{transform:scale(.94);opacity:.55}50%{transform:scale(1.04);opacity:1}}
+.fakeqr{z-index:1;width:108px;height:108px;border-radius:16px;background:#fff;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:11px}
+.fakeqr i{background:#0a1a2e;border-radius:2px}
+.deviceMock strong{z-index:1;display:block;font-size:24px;letter-spacing:.05em;margin-top:13px;font-family:'Sora',sans-serif}
+.deviceMock span{z-index:1;color:#9fd6d0;font-size:12.5px}
+.tableWrap{overflow:auto;border-radius:20px;background:var(--bg2);box-shadow:var(--shadow-in)}
+table{border-collapse:collapse;width:100%;min-width:1000px}
+th,td{padding:12px 13px;border-bottom:1px solid var(--line);font-size:13px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.badge{display:inline-block;border-radius:999px;padding:6px 11px;font-weight:800;font-size:11.5px}
+.assigned{background:#e6eefd;color:#2a52b8}
+.running{background:#fdf1de;color:#a06a12}
+.completed{background:#e2f7ee;color:#0b7a53}
+.cancelled{background:#fbe6e6;color:#a63030}
+.toast{position:fixed;right:18px;bottom:18px;left:18px;max-width:400px;margin-left:auto;background:#0f2036;color:#fff;padding:14px 16px;border-radius:18px;box-shadow:var(--shadow-out);z-index:60;line-height:1.5;font-size:13.5px}
+.empty{padding:22px;border-radius:16px;color:var(--muted);text-align:center;background:var(--bg2);box-shadow:var(--shadow-in)}
+.mini{font-size:12.5px;color:var(--muted);line-height:1.6}
+.hidden{display:none!important}
+.mask{font-family:monospace;letter-spacing:.05em}
+.secnote{display:flex;gap:10px;align-items:flex-start;background:var(--bg2);box-shadow:var(--shadow-in);border-radius:16px;padding:13px 14px;margin-top:14px;font-size:13px;color:var(--muted);line-height:1.6}
+.secnote b{color:var(--ink)}
+
+@media(max-width:900px){
+  .top{flex-wrap:wrap;border-radius:22px}
+  .hero{grid-template-columns:1fr}
+  .stepbar{grid-template-columns:1fr}
+  .span4,.span5,.span6,.span7,.span8{grid-column:span 12}
+  .row{grid-template-columns:1fr}
+  .shell{padding:12px 12px 50px}
+}
+@media(max-width:520px){
+  .nav{width:100%;justify-content:space-between}
+  .nav button{flex:1;padding:10px 6px;font-size:12px}
+  .brand p{display:none}
+  .toast{left:12px;right:12px;max-width:none}
+}
+</style>
 </head>
 <body>
-  <div class="app">
-    <aside>
-      <div class="brand">
-        <div class="logo">P</div>
-        <div>
-          <h1>প্রশ্বাস</h1>
-          <p>Nebulizer Therapy</p>
-        </div>
+<canvas id="netbg"></canvas>
+
+<div class="shell">
+  <header class="top">
+    <div class="brand"><div class="mark">শ্বা</div><div><h1 class="bn">প্রশ্বাস</h1><p>Dynamic QR Therapy System</p></div></div>
+    <nav class="nav">
+      <button class="active" data-view="workflow">Step by Step</button>
+      <button data-view="history">History</button>
+      <button data-view="settings">Settings</button>
+    </nav>
+    <div class="online" id="conn">Connecting…</div>
+  </header>
+
+  <section class="hero">
+    <div class="card hero"><h2>Patient → Therapy → Device</h2><p> </p></div>
+    <div class="card summary">
+      <div><span>Patient</span><strong id="sumPatient">Not selected</strong></div>
+      <div><span>Therapy</span><strong id="sumTherapy">Not assigned</strong></div>
+      <div><span>Device</span><strong id="sumDevice">Not connected</strong></div>
+    </div>
+  </section>
+
+  <section id="workflow" class="view active">
+    <div class="stepbar">
+      <div class="step active" data-step="1"><div class="no">1</div><div><b>Patient</b><small>Create or search profile</small></div></div>
+      <div class="step" data-step="2"><div class="no">2</div><div><b>Therapy</b><small>Assign medicine</small></div></div>
+      <div class="step" data-step="3"><div class="no">3</div><div><b>Connect</b><small>Scan ESP32 QR</small></div></div>
+    </div>
+
+    <div id="step1" class="stepview grid">
+      <div class="card span6">
+        <h3>Create new patient</h3>
+        <p class="hint">Patient ID can be blank. It will be generated automatically.</p>
+        <label>Patient ID</label><input id="newCode" placeholder="Auto, or type P-1001">
+        <label>Name</label><input id="newName" placeholder="Patient name">
+        <div class="row"><div><label>Age</label><input id="newAge" type="number" min="0" placeholder="Age"></div><div><label>Phone</label><input id="newPhone" placeholder="Phone number"></div></div>
+        <div class="row"><div><label>Gender</label><select id="newGender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div><div><label>Address</label><input id="newAddress" placeholder="Optional"></div></div>
+        <div class="actions right"><button class="primary" onclick="createPatient()">Create & Select</button></div>
       </div>
-      <nav>
-        <button class="navbtn active" data-view="dashboard">Dashboard</button>
-        <button class="navbtn" data-view="patients">Patient</button>
-        <button class="navbtn" data-view="assign">Assign + QR</button>
-        <button class="navbtn" data-view="history">History</button>
-      </nav>
-      <div class="mini">
-        Supabase connected. QR scan korle device ID read hobe, tarpor selected patient-er sathe session bind hobe.
+      <div class="card span6">
+        <h3>Search old patient</h3>
+        <p class="hint">Search by ID, name, or phone.</p>
+        <label>Search</label><input id="searchTerm" placeholder="P-1001 / name / phone" onkeydown="if(event.key==='Enter') searchPatients()">
+        <div class="actions"><button class="secondary" onclick="searchPatients()">Search</button><button class="ghost" onclick="loadRecentPatients()">Recent</button></div>
+        <div id="patientResults" class="results"></div>
+        <div id="selectedPatient" class="selected hidden"></div>
       </div>
-    </aside>
+    </div>
 
-    <main>
-      <div class="topbar">
-        <div class="title">
-          <h2 id="pageTitle">Dashboard</h2>
-          <p id="pageSub">Patient, medicine assignment, device QR connection, and therapy logs.</p>
-        </div>
-        <div class="status-pill" id="connectionStatus">Checking Supabase...</div>
+    <div id="step2" class="stepview grid hidden">
+      <div class="card span7">
+        <h3>Assign medicine / therapy</h3>
+        <p class="hint">This creates a pending therapy assignment. ESP32 will still allow time selection before START.</p>
+        <div class="row"><div><label>Medicine name</label><input id="medName" placeholder="Normal Saline"></div><div><label>Dose</label><input id="dose" placeholder="2 ml"></div></div>
+        <div class="row"><div><label>Suggested duration</label><select id="duration"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option></select></div><div><label>Doctor / Operator</label><input id="doctor" placeholder="Optional"></div></div>
+        <label>Note</label><textarea id="note" placeholder="Optional note"></textarea>
+        <div class="actions"><button class="secondary" onclick="goStep(1)">Back</button><button class="primary" onclick="saveTherapyDraft()">Next: Connect Device</button></div>
       </div>
+      <div class="card span5"><h3>Selected patient</h3><div id="therapyPatientBox" class="empty">No patient selected</div></div>
+    </div>
 
-      <section id="dashboard" class="view">
-        <div class="grid">
-          <div class="card stat span4"><span>Total Patients</span><strong id="statPatients">0</strong></div>
-          <div class="card stat span4"><span>Assigned Sessions</span><strong id="statAssigned">0</strong></div>
-          <div class="card stat span4"><span>Completed Sessions</span><strong id="statCompleted">0</strong></div>
-          <div class="card">
-            <h3>Quick Start</h3>
-            <p style="color:var(--muted);line-height:1.7;margin:0">First patient create/search korun. Tarpor Assign + QR page theke medicine assign korun. ESP32 display-er QR scan korlei oi device-er sathe patient bind hobe. ESP32 theke time select kore therapy start korben.</p>
-          </div>
-        </div>
-      </section>
+    <div id="step3" class="stepview grid hidden">
+      <div class="card span5">
+        <h3>ESP32 display QR</h3>
+        <div class="deviceMock"><div><div class="fakeqr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><strong>PROSHASH-001</strong><span>QR changes every minute</span></div></div>
+      </div>
+      <div class="card span7">
+        <h3>Scan and connect</h3>
+        <p class="hint">Scan the QR from ESP32. Format should be: <b>PROSHASH|PROSHASH-001|UNIQUE_TOKEN</b></p>
+        <div id="scannerBox" class="scanbox"><div><b>Camera scanner is idle</b><p class="mini">Press Start Scanner, allow camera permission, then scan the ESP32 screen.</p></div></div>
+        <div class="actions"><button class="primary" onclick="startScanner()">Start Scanner</button><button class="secondary" onclick="stopScanner()">Stop</button></div>
+        <label>Manual QR payload fallback</label><input id="manualPayload" placeholder="PROSHASH|PROSHASH-001|ABC12345">
+        <div class="actions"><button class="secondary" onclick="useManualPayload()">Use Manual Payload</button><button class="primary" onclick="connectDevice()">Connect & Save to Supabase</button></div>
+        <div id="scanResult" class="selected hidden"></div>
+      </div>
+    </div>
+  </section>
 
-      <section id="patients" class="view hide">
-        <div class="grid">
-          <div class="card span6">
-            <h3>Create / Update Patient</h3>
-            <label>Patient ID</label>
-            <input id="patientCode" placeholder="Blank rakhle auto ID hobe, e.g. P-123456" />
-            <div class="row">
-              <div><label>Name</label><input id="patientName" placeholder="Patient name" /></div>
-              <div><label>Age</label><input id="patientAge" type="number" placeholder="Age" /></div>
-            </div>
-            <div class="row">
-              <div><label>Phone</label><input id="patientPhone" placeholder="Phone" /></div>
-              <div><label>Gender</label><select id="patientGender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
-            </div>
-            <label>Address</label>
-            <input id="patientAddress" placeholder="Optional" />
-            <div class="actions">
-              <button class="primary" onclick="savePatient()">Save Patient</button>
-              <button class="secondary" onclick="clearPatientForm()">Clear</button>
-            </div>
-          </div>
-          <div class="card span6">
-            <h3>Find Previous Patient</h3>
-            <label>Search by ID / name / phone</label>
-            <input id="patientSearch" placeholder="Search previous patient" onkeydown="if(event.key==='Enter') searchPatients()" />
-            <div class="actions"><button class="primary" onclick="searchPatients()">Search</button></div>
-            <div id="patientResults" class="result"></div>
-            <div id="selectedPatientBox" class="patient-box">No patient selected.</div>
-          </div>
-        </div>
-      </section>
+  <section id="history" class="view">
+    <div class="card">
+      <h3>Therapy history</h3>
+      <div class="actions"><button class="secondary" onclick="loadHistory(false)">All History</button><button class="ghost" onclick="loadHistory(true)">Selected Patient Only</button></div>
+      <div id="historyBox" class="tableWrap" style="margin-top:16px"><div class="empty">No history loaded yet.</div></div>
+    </div>
+  </section>
 
-      <section id="assign" class="view hide">
-        <div class="grid">
-          <div class="card span5">
-            <h3>Selected Patient</h3>
-            <div id="assignPatientBox" class="patient-box">No patient selected. Go to Patient page first.</div>
-            <label>Medicine Name</label>
-            <input id="medicineName" placeholder="e.g. Normal Saline" />
-            <label>Dose</label>
-            <input id="medicineDose" placeholder="e.g. 2 ml" />
-            <label>Doctor Note</label>
-            <textarea id="doctorNote" placeholder="Optional note"></textarea>
-          </div>
-          <div class="card span7">
-            <h3>QR Scanner</h3>
-            <div id="scannerHelp" class="qr-target">
-              <div>
-                <div style="font-size:44px">▣</div>
-                <p>ESP32 display-er QR scan korun.</p>
-                <p>QR data: device ID, example <b>PROSHASH-001</b></p>
-              </div>
-            </div>
-            <video id="scannerVideo" class="hide" playsinline muted></video>
-            <div class="actions">
-              <button class="primary" onclick="startScanner()">Open Scanner</button>
-              <button class="secondary" onclick="stopScanner()">Stop Scanner</button>
-            </div>
-            <label>Scanned / Manual Device ID</label>
-            <input id="deviceId" placeholder="PROSHASH-001" />
-            <div class="actions">
-              <button class="primary" onclick="createAssignment()">Connect Device + Save</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="history" class="view hide">
-        <div class="card">
-          <h3>Therapy History</h3>
-          <div class="actions">
-            <input id="historySearch" style="max-width:320px" placeholder="Filter by patient/device/medicine" />
-            <button class="primary" onclick="loadHistory()">Refresh</button>
-          </div>
-          <div class="table-wrap" style="margin-top:16px">
-            <table>
-              <thead>
-                <tr>
-                  <th>Time</th><th>Status</th><th>Patient</th><th>Phone</th><th>Medicine</th><th>Dose</th><th>Device</th><th>Duration</th><th>Actual</th><th>Note</th>
-                </tr>
-              </thead>
-              <tbody id="historyBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div id="toast" class="toast hide"></div>
+  <section id="settings" class="view">
+    <div class="card">
+      <h3>Supabase connection</h3>
+      <p class="hint">This app is already configured for your Supabase project.</p>
+      <label>Supabase URL</label><input id="sbUrl" class="mask" readonly>
+      <label>Anon key</label><input id="sbKey" class="mask" readonly>
+      <div class="actions"><button class="secondary" id="revealBtn" onclick="toggleReveal()">Reveal</button><button class="ghost" onclick="testSupabase()">Test Connection</button></div>
+      <div class="secnote"><span>🔒</span><span><b>Security note:</b> credentials are masked on screen by default. The anon key is meant to be public in client apps like this one — real protection must come from Row Level Security (RLS) policies on your Supabase tables, not from hiding this string. Never put a service-role key in a browser app.</span></div>
+    </div>
+  </section>
+</div>
+<div id="toast" class="toast hidden"></div>
 
 <script>
-const SUPABASE_URL = "https://tormothdvqfzetcrygeb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcm1vdGhkdnFmemV0Y3J5Z2ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTA2NzEsImV4cCI6MjA5ODYyNjY3MX0.QcaxGNdd4MJqxl06u3QfYmHI8U49ipqv17SJL5wL2yM";
-const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let selectedPatient = null;
-let scannerStream = null;
-let scannerTimer = null;
-let barcodeDetector = null;
+/* ---------- Neural-net breathing background, reacts to pointer ---------- */
+(function(){
+  const canvas = document.getElementById('netbg');
+  if(!canvas) return;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ canvas.remove(); return; }
+  const ctx = canvas.getContext('2d');
+  let W,H,DPR;
+  let nodes=[];
+  let pointer={x:null,y:null,active:false};
+  const COLORS = ['20,173,160','52,104,224','231,165,60'];
 
-const pageTitles = {
-  dashboard: ['Dashboard', 'Patient, medicine assignment, device QR connection, and therapy logs.'],
-  patients: ['Patient', 'Create a new patient or find an existing patient.'],
-  assign: ['Assign + QR', 'Assign medicine and connect patient to ESP32 by scanning device QR.'],
-  history: ['History', 'Review all therapy assignments and completed logs.']
-};
-
-document.querySelectorAll('.navbtn').forEach(btn => {
-  btn.addEventListener('click', () => showView(btn.dataset.view));
-});
-
-function showView(name) {
-  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  document.querySelectorAll('.view').forEach(v => v.classList.add('hide'));
-  document.getElementById(name).classList.remove('hide');
-  document.getElementById('pageTitle').textContent = pageTitles[name][0];
-  document.getElementById('pageSub').textContent = pageTitles[name][1];
-  if (name === 'history') loadHistory();
-  if (name === 'dashboard') loadDashboard();
-  if (name === 'assign') renderSelectedPatient();
-}
-
-function toast(msg, isError=false) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.background = isError ? '#8b1d1d' : '#061425';
-  el.classList.remove('hide');
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(() => el.classList.add('hide'), 4200);
-}
-
-function makePatientCode() {
-  return 'P-' + new Date().getTime().toString().slice(-8);
-}
-
-function esc(v) {
-  return String(v ?? '').replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
-}
-
-function formatDate(v) {
-  if (!v) return '';
-  try { return new Date(v).toLocaleString(); } catch(e) { return v; }
-}
-
-async function testConnection() {
-  const { error } = await client.from('patients').select('id', { count: 'exact', head: true });
-  const el = document.getElementById('connectionStatus');
-  if (error) {
-    el.textContent = 'Supabase error';
-    el.style.color = 'var(--red)';
-    el.style.background = '#fef2f2';
-    toast(error.message, true);
-  } else {
-    el.textContent = 'Supabase connected';
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio||1, 2);
+    W = canvas.width = innerWidth * DPR;
+    H = canvas.height = innerHeight * DPR;
+    canvas.style.width = innerWidth+'px';
+    canvas.style.height = innerHeight+'px';
+    const count = Math.round((innerWidth*innerHeight)/26000);
+    nodes = Array.from({length: Math.max(28, Math.min(count,110))}, ()=>({
+      x: Math.random()*W, y: Math.random()*H,
+      vx: (Math.random()-.5)*0.22*DPR, vy: (Math.random()-.5)*0.22*DPR,
+      r: (Math.random()*1.6+1.1)*DPR,
+      phase: Math.random()*Math.PI*2,
+      c: COLORS[Math.floor(Math.random()*COLORS.length)]
+    }));
   }
-}
+  window.addEventListener('resize', resize);
+  resize();
 
-async function savePatient() {
-  const patient_code = document.getElementById('patientCode').value.trim() || makePatientCode();
-  const name = document.getElementById('patientName').value.trim();
-  if (!name) return toast('Patient name required.', true);
-  const row = {
-    patient_code,
-    name,
-    age: document.getElementById('patientAge').value ? Number(document.getElementById('patientAge').value) : null,
-    phone: document.getElementById('patientPhone').value.trim(),
-    gender: document.getElementById('patientGender').value,
-    address: document.getElementById('patientAddress').value.trim()
-  };
-  const { data, error } = await client.from('patients').upsert(row, { onConflict: 'patient_code' }).select().single();
-  if (error) return toast(error.message, true);
-  selectPatient(data);
-  toast('Patient saved: ' + data.patient_code);
-  loadDashboard();
-}
+  window.addEventListener('pointermove', e=>{
+    pointer.x = e.clientX*DPR; pointer.y = e.clientY*DPR; pointer.active=true;
+  }, {passive:true});
+  window.addEventListener('pointerleave', ()=>{ pointer.active=false; });
 
-function clearPatientForm() {
-  ['patientCode','patientName','patientAge','patientPhone','patientGender','patientAddress'].forEach(id => document.getElementById(id).value = '');
-}
-
-async function searchPatients() {
-  const q = document.getElementById('patientSearch').value.trim();
-  const box = document.getElementById('patientResults');
-  if (!q) return toast('Search text required.', true);
-  box.innerHTML = 'Searching...';
-  const safe = q.replaceAll(',', ' ').replaceAll('%', '');
-  const { data, error } = await client
-    .from('patients')
-    .select('*')
-    .or(`patient_code.ilike.%${safe}%,name.ilike.%${safe}%,phone.ilike.%${safe}%`)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  if (error) { box.innerHTML = ''; return toast(error.message, true); }
-  if (!data.length) { box.innerHTML = '<p style="color:var(--muted)">No patient found.</p>'; return; }
-  box.innerHTML = data.map(p => `
-    <button onclick='selectPatient(${JSON.stringify(p).replaceAll("'", "&#39;")})'>
-      <b>${esc(p.patient_code)} — ${esc(p.name)}</b><br>
-      <span>${esc(p.phone || '')} ${p.age ? ' · Age ' + esc(p.age) : ''}</span>
-    </button>
-  `).join('');
-}
-
-function selectPatient(p) {
-  selectedPatient = p;
-  document.getElementById('patientCode').value = p.patient_code || '';
-  document.getElementById('patientName').value = p.name || '';
-  document.getElementById('patientAge').value = p.age || '';
-  document.getElementById('patientPhone').value = p.phone || '';
-  document.getElementById('patientGender').value = p.gender || '';
-  document.getElementById('patientAddress').value = p.address || '';
-  renderSelectedPatient();
-}
-
-function renderSelectedPatient() {
-  const html = selectedPatient ? `
-    <strong>${esc(selectedPatient.name)} <span style="color:var(--muted)">(${esc(selectedPatient.patient_code)})</span></strong>
-    <div style="color:var(--muted);margin-top:6px">Phone: ${esc(selectedPatient.phone || 'N/A')} · Age: ${esc(selectedPatient.age || 'N/A')}</div>
-  ` : 'No patient selected.';
-  document.getElementById('selectedPatientBox').innerHTML = html;
-  document.getElementById('assignPatientBox').innerHTML = html;
-}
-
-function parseDeviceId(text) {
-  const raw = String(text || '').trim();
-  try {
-    const u = new URL(raw);
-    return u.searchParams.get('device_id') || u.searchParams.get('device') || raw;
-  } catch(e) {
-    return raw;
-  }
-}
-
-async function startScanner() {
-  if (!('BarcodeDetector' in window)) {
-    toast('Ei browser QR scanner support korche na. Manual Device ID use korun.', true);
-    return;
-  }
-  try {
-    barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-    scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    const video = document.getElementById('scannerVideo');
-    video.srcObject = scannerStream;
-    await video.play();
-    document.getElementById('scannerHelp').classList.add('hide');
-    video.classList.remove('hide');
-    scannerTimer = setInterval(async () => {
-      try {
-        const codes = await barcodeDetector.detect(video);
-        if (codes && codes.length) {
-          const id = parseDeviceId(codes[0].rawValue);
-          document.getElementById('deviceId').value = id;
-          toast('QR scanned: ' + id);
-          stopScanner();
+  let t=0;
+  function frame(){
+    t += 0.016;
+    ctx.clearRect(0,0,W,H);
+    const linkDist = 150*DPR;
+    for(const n of nodes){
+      n.x += n.vx; n.y += n.vy;
+      if(pointer.active){
+        const dx=pointer.x-n.x, dy=pointer.y-n.y;
+        const d2 = dx*dx+dy*dy;
+        const rad = 220*DPR;
+        if(d2 < rad*rad){
+          const d = Math.sqrt(d2)||1;
+          const force = (1 - d/rad) * 0.045*DPR;
+          n.x -= (dx/d)*force*10;
+          n.y -= (dy/d)*force*10;
         }
-      } catch(e) {}
-    }, 500);
-  } catch(e) {
-    toast('Camera open korte parlam na. Manual Device ID use korun.', true);
+      }
+      if(n.x<0) n.x=W; if(n.x>W) n.x=0;
+      if(n.y<0) n.y=H; if(n.y>H) n.y=0;
+    }
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i], b=nodes[j];
+        const dx=a.x-b.x, dy=a.y-b.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < linkDist){
+          const alpha = (1 - dist/linkDist) * 0.16;
+          ctx.strokeStyle = `rgba(${a.c},${alpha})`;
+          ctx.lineWidth = DPR*0.7;
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+          ctx.stroke();
+        }
+      }
+    }
+    const breath = (Math.sin(t*0.6)+1)/2;
+    for(const n of nodes){
+      const pulse = (Math.sin(t*1.4+n.phase)+1)/2;
+      const rr = n.r * (0.7 + breath*0.5 + pulse*0.25);
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${n.c},${0.22+pulse*0.28})`;
+      ctx.arc(n.x,n.y,rr,0,Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(frame);
   }
+  requestAnimationFrame(frame);
+})();
+
+/* ---------- App logic (Supabase client) ---------- */
+const SUPABASE_URL = 'https://tormothdvqfzetcrygeb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcm1vdGhkdnFmemV0Y3J5Z2ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTA2NzEsImV4cCI6MjA5ODYyNjY3MX0.QcaxGNdd4MJqxl06u3QfYmHI8U49ipqv17SJL5wL2yM';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let selectedPatient = null;
+let therapy = null;
+let scanned = null;
+let stream = null;
+let detector = null;
+let scanLoop = false;
+let revealed = false;
+
+const $ = id => document.getElementById(id);
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3600)}
+function esc(v){return String(v ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function setConn(text, good=true){$('conn').textContent=text;$('conn').classList.toggle('bad',!good)}
+function mask(s){ if(!s) return ''; return s.slice(0,6)+'••••••••••••'+s.slice(-4); }
+
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$(name).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='history')loadHistory(false)}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+document.querySelectorAll('.step').forEach(s=>s.onclick=()=>goStep(Number(s.dataset.step)));
+
+function goStep(n){
+  if(n>1 && !selectedPatient){toast('First select or create a patient.');return}
+  if(n>2 && !therapy){toast('First assign medicine/therapy.');return}
+  document.querySelectorAll('.stepview').forEach(v=>v.classList.add('hidden'));
+  $('step'+n).classList.remove('hidden');
+  document.querySelectorAll('.step').forEach(s=>{const i=Number(s.dataset.step);s.classList.toggle('active',i===n);s.classList.toggle('done',i<n)});
+}
+function updateSummary(){
+  $('sumPatient').textContent = selectedPatient ? `${selectedPatient.patient_code} · ${selectedPatient.name}` : 'Not selected';
+  $('sumTherapy').textContent = therapy ? `${therapy.medicine_name} · ${therapy.dose || 'No dose'} · ${therapy.requested_duration_min} min` : 'Not assigned';
+  $('sumDevice').textContent = scanned ? `${scanned.device_id} · ${scanned.qr_token}` : 'Not connected';
+  $('therapyPatientBox').innerHTML = selectedPatient ? `<div class="selected"><b>Selected</b>${esc(selectedPatient.name)}<br><span class="mini">${esc(selectedPatient.patient_code)} · ${esc(selectedPatient.phone || 'No phone')}</span></div>` : '<div class="empty">No patient selected</div>';
+}
+function patientCode(){return 'P-' + Date.now().toString().slice(-6)}
+
+async function createPatient(){
+  const row={patient_code:($('newCode').value.trim() || patientCode()).toUpperCase(),name:$('newName').value.trim(),age:Number($('newAge').value)||null,phone:$('newPhone').value.trim(),gender:$('newGender').value,address:$('newAddress').value.trim()};
+  if(!row.name){toast('Patient name required.');return}
+  const {data,error}=await db.from('patients').insert(row).select().single();
+  if(error){toast(error.message);return}
+  selectPatient(data);toast('Patient created and selected.');goStep(2);
+}
+async function searchPatients(){
+  const term=$('searchTerm').value.trim();
+  if(!term){loadRecentPatients();return}
+  const q=`patient_code.ilike.%${term}%,name.ilike.%${term}%,phone.ilike.%${term}%`;
+  const {data,error}=await db.from('patients').select('*').or(q).order('created_at',{ascending:false}).limit(20);
+  if(error){toast(error.message);return}
+  renderPatients(data||[]);
+}
+async function loadRecentPatients(){
+  const {data,error}=await db.from('patients').select('*').order('created_at',{ascending:false}).limit(20);
+  if(error){toast(error.message);return}
+  renderPatients(data||[]);
+}
+function renderPatients(rows){
+  $('patientResults').innerHTML = rows.length ? rows.map(p=>`<div class="person" onclick='selectPatient(${JSON.stringify(p).replace(/'/g,"&#39;")})'><div><strong>${esc(p.name)}</strong><small>${esc(p.patient_code)} · ${esc(p.phone || 'No phone')}</small></div><span class="pill">Select</span></div>`).join('') : '<div class="empty">No patient found.</div>';
+}
+function selectPatient(p){
+  selectedPatient=p;
+  $('selectedPatient').classList.remove('hidden');
+  $('selectedPatient').innerHTML=`<b>Selected</b>${esc(p.name)}<br><span class="mini">${esc(p.patient_code)} · ${esc(p.phone || 'No phone')}</span>`;
+  updateSummary();
+}
+function saveTherapyDraft(){
+  if(!selectedPatient){toast('Select patient first.');return}
+  const med=$('medName').value.trim();
+  if(!med){toast('Medicine name required.');return}
+  therapy={medicine_name:med,dose:$('dose').value.trim(),requested_duration_min:Number($('duration').value),doctor:$('doctor').value.trim(),doctor_note:$('note').value.trim()};
+  updateSummary();toast('Therapy assigned. Now scan ESP32 QR.');goStep(3);
 }
 
-function stopScanner() {
-  clearInterval(scannerTimer);
-  scannerTimer = null;
-  const video = document.getElementById('scannerVideo');
-  if (scannerStream) scannerStream.getTracks().forEach(t => t.stop());
-  scannerStream = null;
-  video.srcObject = null;
-  video.classList.add('hide');
-  document.getElementById('scannerHelp').classList.remove('hide');
+function parseProshashQR(raw){
+  raw=String(raw||'').trim();
+  if(raw.startsWith('PROSHASH|')){
+    const parts=raw.split('|');
+    if(parts.length>=3 && parts[1] && parts[2]) return {device_id:parts[1],qr_token:parts[2],qr_payload:raw};
+  }
+  try{const j=JSON.parse(raw);if(j.device_id&&j.qr_token)return {device_id:j.device_id,qr_token:j.qr_token,qr_payload:raw}}catch(e){}
+  return null;
 }
-
-async function createAssignment() {
-  if (!selectedPatient) return toast('Patient select korun first.', true);
-  const device_id = document.getElementById('deviceId').value.trim();
-  const medicine_name = document.getElementById('medicineName').value.trim();
-  if (!device_id) return toast('Device ID required. QR scan or manual input korun.', true);
-  if (!medicine_name) return toast('Medicine name required.', true);
-  const row = {
-    patient_id: selectedPatient.id,
-    patient_code: selectedPatient.patient_code,
-    patient_name: selectedPatient.name,
-    patient_phone: selectedPatient.phone,
-    medicine_name,
-    dose: document.getElementById('medicineDose').value.trim(),
-    doctor_note: document.getElementById('doctorNote').value.trim(),
-    device_id,
-    status: 'assigned',
-    qr_scanned_at: new Date().toISOString()
+function handleQR(raw){
+  const parsed=parseProshashQR(raw);
+  if(!parsed){toast('Invalid Proshash QR.');return}
+  scanned=parsed;$('manualPayload').value=parsed.qr_payload;$('scanResult').classList.remove('hidden');$('scanResult').innerHTML=`<b>QR detected</b>Device: ${esc(parsed.device_id)}<br><span class="mini">Unique ID: ${esc(parsed.qr_token)}</span>`;updateSummary();stopScanner();
+}
+async function startScanner(){
+  if(!('BarcodeDetector' in window)){toast('BarcodeDetector not supported. Use manual payload.');return}
+  try{detector=new BarcodeDetector({formats:['qr_code']});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});$('scannerBox').innerHTML='<video id="video" autoplay playsinline></video>';$('video').srcObject=stream;scanLoop=true;requestAnimationFrame(scanFrame)}catch(e){toast('Camera error: '+e.message)}
+}
+async function scanFrame(){
+  if(!scanLoop || !detector || !$('video'))return;
+  try{const codes=await detector.detect($('video'));if(codes.length){handleQR(codes[0].rawValue);return}}catch(e){}
+  requestAnimationFrame(scanFrame);
+}
+function stopScanner(){scanLoop=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('scannerBox').innerHTML='<div><b>Camera scanner is idle</b><p class="mini">Press Start Scanner or paste QR payload manually.</p></div>'}
+function useManualPayload(){const parsed=parseProshashQR($('manualPayload').value);if(!parsed){toast('Manual payload invalid. Use PROSHASH|DEVICE|TOKEN');return}scanned=parsed;$('scanResult').classList.remove('hidden');$('scanResult').innerHTML=`<b>Manual payload ready</b>Device: ${esc(parsed.device_id)}<br><span class="mini">Unique ID: ${esc(parsed.qr_token)}</span>`;updateSummary()}
+async function connectDevice(){
+  if(!selectedPatient){toast('Select patient first.');goStep(1);return}
+  if(!therapy){toast('Assign therapy first.');goStep(2);return}
+  if(!scanned){useManualPayload(); if(!scanned)return}
+  const {data:old,error:oldErr}=await db.from('therapy_sessions').select('id,session_code,status').eq('qr_token',scanned.qr_token).maybeSingle();
+  if(oldErr){toast(oldErr.message);return}
+  if(old){toast('This QR token was already used: '+old.session_code);return}
+  const row={
+    patient_id:selectedPatient.id,patient_code:selectedPatient.patient_code,patient_name:selectedPatient.name,patient_phone:selectedPatient.phone,
+    medicine_name:therapy.medicine_name,dose:therapy.dose,doctor_note:[therapy.doctor?('Doctor: '+therapy.doctor):'',therapy.doctor_note].filter(Boolean).join('\n'),
+    device_id:scanned.device_id,device_name:'Proshash Nebulizer',qr_token:scanned.qr_token,qr_payload:scanned.qr_payload,
+    requested_duration_min:therapy.requested_duration_min,status:'assigned',qr_scanned_at:new Date().toISOString()
   };
-  const { data, error } = await client.from('therapy_sessions').insert(row).select().single();
-  if (error) return toast(error.message, true);
-  toast('Device connected. Session: ' + data.session_code);
-  loadDashboard();
-  showView('history');
+  const {data,error}=await db.from('therapy_sessions').insert(row).select().single();
+  if(error){toast(error.message);return}
+  $('sumDevice').textContent=`${data.device_id} · ${data.qr_token}`;
+  toast('Connected. Now press START on ESP32.');
+  $('scanResult').innerHTML=`<b>Connected and saved</b>Session: ${esc(data.session_code)}<br><span class="mini">ESP32 will detect this token within a few seconds.</span>`;
+  loadHistory(false);
 }
-
-function statusBadge(s) {
-  const cls = ['assigned','running','completed','cancelled'].includes(s) ? s : 'assigned';
-  return `<span class="badge ${cls}">${esc(s)}</span>`;
+async function loadHistory(onlySelected){
+  let q=db.from('therapy_sessions').select('*').order('created_at',{ascending:false}).limit(100);
+  if(onlySelected && selectedPatient) q=q.eq('patient_code',selectedPatient.patient_code);
+  const {data,error}=await q;if(error){toast(error.message);return}
+  const rows=data||[];
+  if(!rows.length){$('historyBox').innerHTML='<div class="empty">No sessions found.</div>';return}
+  $('historyBox').innerHTML=`<table><thead><tr><th>Session</th><th>Patient</th><th>Medicine</th><th>Device / QR Token</th><th>Duration</th><th>Status</th><th>Started</th><th>Completed</th><th>Note</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.session_code)}</b><br><span class="mini">${esc((r.created_at||'').slice(0,19).replace('T',' '))}</span></td><td>${esc(r.patient_name)}<br><span class="mini">${esc(r.patient_code||'')}</span></td><td>${esc(r.medicine_name||'')}<br><span class="mini">${esc(r.dose||'')}</span></td><td>${esc(r.device_id||'')}<br><span class="mini">${esc(r.qr_token||'')}</span></td><td>App: ${esc(r.requested_duration_min||'')} min<br>ESP: ${esc(r.selected_duration_min||'')} min<br>${esc(r.actual_duration_sec||'')} sec</td><td><span class="badge ${esc(r.status)}">${esc(r.status)}</span></td><td>${esc((r.started_at||'').slice(0,19).replace('T',' '))}</td><td>${esc((r.completed_at||'').slice(0,19).replace('T',' '))}</td><td>${esc(r.doctor_note||'')}</td></tr>`).join('')}</tbody></table>`;
 }
-
-async function loadHistory() {
-  const q = document.getElementById('historySearch')?.value.trim().toLowerCase() || '';
-  let query = client.from('therapy_sessions').select('*').order('created_at', { ascending: false }).limit(200);
-  const { data, error } = await query;
-  const body = document.getElementById('historyBody');
-  if (error) { body.innerHTML = ''; return toast(error.message, true); }
-  const rows = (data || []).filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
-  body.innerHTML = rows.map(r => `
-    <tr>
-      <td>${formatDate(r.created_at)}<br><span style="color:var(--muted)">${esc(r.session_code)}</span></td>
-      <td>${statusBadge(r.status)}</td>
-      <td><b>${esc(r.patient_name || '')}</b><br>${esc(r.patient_code || '')}</td>
-      <td>${esc(r.patient_phone || '')}</td>
-      <td>${esc(r.medicine_name || '')}</td>
-      <td>${esc(r.dose || '')}</td>
-      <td>${esc(r.device_id || '')}</td>
-      <td>${esc(r.selected_duration_min || '')} min</td>
-      <td>${r.actual_duration_sec ? esc(r.actual_duration_sec) + ' sec' : ''}</td>
-      <td>${esc(r.doctor_note || '')}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="10">No data found.</td></tr>';
+async function testSupabase(){const {error}=await db.from('patients').select('id').limit(1);if(error){setConn('Connection error',false);toast(error.message)}else{setConn('Supabase Ready',true);toast('Supabase connected.')}}
+function toggleReveal(){
+  revealed=!revealed;
+  $('sbUrl').value = revealed ? SUPABASE_URL : mask(SUPABASE_URL);
+  $('sbKey').value = revealed ? SUPABASE_ANON_KEY : mask(SUPABASE_ANON_KEY);
+  $('revealBtn').textContent = revealed ? 'Hide' : 'Reveal';
 }
-
-async function loadDashboard() {
-  const p = await client.from('patients').select('id', { count: 'exact', head: true });
-  const a = await client.from('therapy_sessions').select('id', { count: 'exact', head: true }).eq('status','assigned');
-  const c = await client.from('therapy_sessions').select('id', { count: 'exact', head: true }).eq('status','completed');
-  document.getElementById('statPatients').textContent = p.count || 0;
-  document.getElementById('statAssigned').textContent = a.count || 0;
-  document.getElementById('statCompleted').textContent = c.count || 0;
-}
-
-testConnection();
-loadDashboard();
+$('sbUrl').value=mask(SUPABASE_URL);$('sbKey').value=mask(SUPABASE_ANON_KEY);
+updateSummary();loadRecentPatients();testSupabase();
 </script>
 </body>
 </html>
