@@ -136,6 +136,25 @@ Button startBtn = {BTN_START, HIGH, HIGH, 0};
 Button stopBtn  = {BTN_STOP,  HIGH, HIGH, 0};
 Button modeBtn  = {BTN_MODE,  HIGH, HIGH, 0};
 
+
+void syncButtonStates() {
+  nextBtn.lastStable = digitalRead(BTN_NEXT);
+  nextBtn.lastReading = nextBtn.lastStable;
+  nextBtn.lastChange = millis();
+
+  startBtn.lastStable = digitalRead(BTN_START);
+  startBtn.lastReading = startBtn.lastStable;
+  startBtn.lastChange = millis();
+
+  stopBtn.lastStable = digitalRead(BTN_STOP);
+  stopBtn.lastReading = stopBtn.lastStable;
+  stopBtn.lastChange = millis();
+
+  modeBtn.lastStable = digitalRead(BTN_MODE);
+  modeBtn.lastReading = modeBtn.lastStable;
+  modeBtn.lastChange = millis();
+}
+
 bool buttonPressed(Button &btn) {
   bool reading = digitalRead(btn.pin);
 
@@ -324,7 +343,7 @@ void drawTimerTextOnly(unsigned long sec) {
 }
 
 void drawTimerStaticPanel() {
-  centerText("Therapy Time", 91, 1, C_TEXT);
+  centerText(" ", 91, 1, C_TEXT);
   lastDrawnSeconds = 999999UL;
 }
 
@@ -515,7 +534,7 @@ void drawOfflineReadyScreen() {
   totalSeconds = (unsigned long)timeOptions[selectedIndex] * 60UL;
   remainingSeconds = totalSeconds;
 
-  centerText("Local Timer", 90, 2, C_INK);
+  centerText(" ", 90, 2, C_INK);
   drawTimerPanel(remainingSeconds, false);
   drawOptionButtons();
   drawActionBar(false);
@@ -530,7 +549,7 @@ void drawRunningScreen() {
     centerText(cleanShort(activePatientName, 24), 82, 1, C_INK);
     centerText(cleanShort(activeMedicine, 24), 96, 1, C_BLUE);
   } else {
-    centerText("Offline Therapy", 90, 1, C_INK);
+    centerText(" ", 90, 1, C_INK);
   }
 
   drawTimerPanel(remainingSeconds, true);
@@ -760,24 +779,29 @@ void toggleMode() {
 
 // ---------------- Arduino Setup/Loop ----------------
 void setup() {
+  // Force relay OFF as early as possible at boot.
+  // For active-low relay modules, RELAY_OFF = HIGH.
+  // Writing before pinMode enables the output latch before the pin becomes OUTPUT.
+  digitalWrite(RELAY_PIN, RELAY_OFF);
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, RELAY_OFF);
+
   Serial.begin(115200);
-  delay(300);
+  delay(50);
   Serial.println();
   Serial.println("=== Proshash Nebulizer boot ===");
   Serial.print("Relay trigger mode: ");
   Serial.println(RELAY_ACTIVE_LOW ? "ACTIVE LOW" : "ACTIVE HIGH");
+  setRelay(false);
 
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
-
-  // Keep the relay OFF immediately at startup.
-  pinMode(RELAY_PIN, OUTPUT);
-  setRelay(false);
 
   pinMode(BTN_NEXT, INPUT_PULLUP);
   pinMode(BTN_START, INPUT_PULLUP);
   pinMode(BTN_STOP, INPUT_PULLUP);
   pinMode(BTN_MODE, INPUT_PULLUP);
+  syncButtonStates();
 
   SPI.begin(TFT_SCK, -1, TFT_MOSI, TFT_CS);
 
