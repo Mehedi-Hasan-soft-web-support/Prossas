@@ -11,6 +11,7 @@
   4) User selects time on ESP32, presses START, relay turns ON and countdown starts.
   5) On complete, relay turns OFF and Supabase row is updated to completed.
   6) MODE button switches between QR CONNECT and OFFLINE timer mode.
+  7) START on the QR screen also starts manual/offline therapy directly.
 
   Required Arduino libraries:
   - Adafruit GFX Library
@@ -60,9 +61,13 @@ const char* DEVICE_ID = "PROSHASH-001";
 #define BTN_STOP   25
 #define BTN_MODE   27   // New button: connect to GND, uses INPUT_PULLUP
 
-// Change these if your relay module is active LOW.
-#define RELAY_ON   HIGH
-#define RELAY_OFF  LOW
+// Relay trigger type:
+// true  = relay turns ON when GPIO is LOW (most common relay modules)
+// false = relay turns ON when GPIO is HIGH
+// If the relay never clicks, change only this value and upload again.
+const bool RELAY_ACTIVE_LOW = true;
+const uint8_t RELAY_ON  = RELAY_ACTIVE_LOW ? LOW  : HIGH;
+const uint8_t RELAY_OFF = RELAY_ACTIVE_LOW ? HIGH : LOW;
 
 Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_RST);
 WiFiClientSecure secureClient;
@@ -147,6 +152,19 @@ bool buttonPressed(Button &btn) {
   }
 
   return false;
+}
+
+// ---------------- Relay Helper ----------------
+void setRelay(bool turnOn) {
+  uint8_t level = turnOn ? RELAY_ON : RELAY_OFF;
+  digitalWrite(RELAY_PIN, level);
+
+  Serial.print("[RELAY] ");
+  Serial.print(turnOn ? "ON" : "OFF");
+  Serial.print(" | GPIO ");
+  Serial.print(RELAY_PIN);
+  Serial.print(" = ");
+  Serial.println(level == HIGH ? "HIGH" : "LOW");
 }
 
 // ---------------- Drawing Helpers ----------------
@@ -681,17 +699,24 @@ void startTherapy() {
   previousTick = millis();
   lastDrawnSeconds = 999999UL;
 
+  Serial.print("[THERAPY] Start, duration = ");
+  Serial.print(timeOptions[selectedIndex]);
+  Serial.println(" minute(s)");
+
   if (onlineMode && activeSessionId.length()) {
-    patchSessionRunning();
+    bool updated = patchSessionRunning();
+    Serial.println(updated ? "[SUPABASE] Session marked running"
+                           : "[SUPABASE] Running update failed");
   }
 
-  digitalWrite(RELAY_PIN, RELAY_ON);
+  setRelay(true);
   state = onlineMode ? STATE_RUNNING : STATE_OFFLINE_RUNNING;
   drawRunningScreen();
 }
 
 void stopTherapy() {
-  digitalWrite(RELAY_PIN, RELAY_OFF);
+  Serial.println("[THERAPY] Stopped/reset by user");
+  setRelay(false);
 
   if (onlineMode) {
     clearActiveSession();
@@ -704,7 +729,8 @@ void stopTherapy() {
 }
 
 void finishTherapy() {
-  digitalWrite(RELAY_PIN, RELAY_OFF);
+  Serial.println("[THERAPY] Countdown complete");
+  setRelay(false);
 
   bool uploaded = false;
   if (onlineMode && activeSessionId.length()) {
@@ -718,7 +744,7 @@ void finishTherapy() {
 void toggleMode() {
   if (state == STATE_RUNNING || state == STATE_OFFLINE_RUNNING) return;
 
-  digitalWrite(RELAY_PIN, RELAY_OFF);
+  setRelay(false);
   onlineMode = !onlineMode;
   clearActiveSession();
   lastDrawnSeconds = 999999UL;
@@ -734,11 +760,19 @@ void toggleMode() {
 
 // ---------------- Arduino Setup/Loop ----------------
 void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println("=== Proshash Nebulizer boot ===");
+  Serial.print("Relay trigger mode: ");
+  Serial.println(RELAY_ACTIVE_LOW ? "ACTIVE LOW" : "ACTIVE HIGH");
+
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
 
+  // Keep the relay OFF immediately at startup.
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, RELAY_OFF);
+  setRelay(false);
 
   pinMode(BTN_NEXT, INPUT_PULLUP);
   pinMode(BTN_START, INPUT_PULLUP);
@@ -762,9 +796,11 @@ void setup() {
 }
 
 void loop() {
+  // MODE changes between QR/online and local/offline mode.
   if (buttonPressed(modeBtn)) {
+    Serial.println("[BUTTON] MODE");
     toggleMode();
-    delay(250);
+    delay(150);
     return;
   }
 
@@ -773,63 +809,78 @@ void loop() {
     wifiOk = (WiFi.status() == WL_CONNECTED);
   }
 
+  // ------------------------------------------------------------
+  // QR WAIT:
+  // START now works as a direct manual start. It automatically
+  // switches to offline mode and energizes the relay.
+  // ------------------------------------------------------------
   if (state == STATE_QR_WAIT) {
-    if (buttonPressed(stopBtn)) drawQrWaitScreen();
+    if (buttonPressed(startBtn)) {
+      Serial.println("[BUTTON] START in QR screen -> manual/offline start");
+      onlineMode = false;
+      clearActiveSession();
+      state = STATE_OFFLINE_READY;
+      startTherapy();
+      return;
+    }
+
+    if (buttonPressed(nextBtn)) {
+      Serial.println("[BUTTON] NEXT in QR screen -> select manual time");
+      selectedIndex++;
+      if (selectedIndex >= optionCount) selectedIndex = 0;
+
+      onlineMode = false;
+      clearActiveSession();
+      state = STATE_OFFLINE_READY;
+      drawOfflineReadyScreen();
+      return;
+    }
+
+    if (buttonPressed(stopBtn)) {
+      Serial.println("[BUTTON] STOP in QR screen");
+      setRelay(false);
+      drawQrWaitScreen();
+      return;
+    }
 
     if (millis() - lastPollMs > 5000) {
       lastPollMs = millis();
       if (pollAssignedSession()) {
+        Serial.println("[SUPABASE] Assigned session found");
         state = STATE_READY;
         drawReadyScreen();
       }
     }
   }
 
+  // ------------------------------------------------------------
+  // READY states: select duration, start, or reset.
+  // ------------------------------------------------------------
   else if (state == STATE_READY || state == STATE_OFFLINE_READY) {
     if (buttonPressed(nextBtn)) {
+      Serial.println("[BUTTON] NEXT");
       selectedIndex++;
       if (selectedIndex >= optionCount) selectedIndex = 0;
+
+      Serial.print("[TIMER] Selected ");
+      Serial.print(timeOptions[selectedIndex]);
+      Serial.println(" minute(s)");
+
       if (onlineMode) drawReadyScreen();
       else drawOfflineReadyScreen();
-    }
-
-    if (buttonPressed(startBtn)) {
-      startTherapy();
-    }
-
-    if (buttonPressed(stopBtn)) {
-      if (onlineMode) {
-        clearActiveSession();
-        state = STATE_QR_WAIT;
-        drawQrWaitScreen();
-      } else {
-        drawOfflineReadyScreen();
-      }
-    }
-  }
-
-  else if (state == STATE_RUNNING || state == STATE_OFFLINE_RUNNING) {
-    if (buttonPressed(stopBtn)) {
-      stopTherapy();
       return;
     }
 
-    if (millis() - previousTick >= 1000) {
-      previousTick += 1000;
-
-      if (remainingSeconds > 0) {
-        remainingSeconds--;
-        updateTimerPanel(remainingSeconds, true);
-      }
-
-      if (remainingSeconds == 0) {
-        finishTherapy();
-      }
+    if (buttonPressed(startBtn)) {
+      Serial.println("[BUTTON] START");
+      startTherapy();
+      return;
     }
-  }
 
-  else if (state == STATE_DONE || state == STATE_OFFLINE_DONE) {
-    if (buttonPressed(startBtn) || buttonPressed(stopBtn)) {
+    if (buttonPressed(stopBtn)) {
+      Serial.println("[BUTTON] STOP/RESET");
+      setRelay(false);
+
       if (onlineMode) {
         clearActiveSession();
         state = STATE_QR_WAIT;
@@ -838,6 +889,77 @@ void loop() {
         state = STATE_OFFLINE_READY;
         drawOfflineReadyScreen();
       }
+      return;
+    }
+  }
+
+  // ------------------------------------------------------------
+  // RUNNING states: STOP immediately de-energizes the relay.
+  // Countdown also de-energizes the relay when it reaches zero.
+  // ------------------------------------------------------------
+  else if (state == STATE_RUNNING || state == STATE_OFFLINE_RUNNING) {
+    if (buttonPressed(stopBtn)) {
+      Serial.println("[BUTTON] STOP while running");
+      stopTherapy();
+      return;
+    }
+
+    // Ignore NEXT/START while already running, but report it.
+    if (buttonPressed(nextBtn)) {
+      Serial.println("[BUTTON] NEXT ignored while running");
+    }
+    if (buttonPressed(startBtn)) {
+      Serial.println("[BUTTON] START ignored; already running");
+    }
+
+    // Catch up correctly even if another operation briefly blocks the loop.
+    unsigned long nowMs = millis();
+    while (remainingSeconds > 0 && nowMs - previousTick >= 1000) {
+      previousTick += 1000;
+      remainingSeconds--;
+    }
+
+    updateTimerPanel(remainingSeconds, true);
+
+    if (remainingSeconds == 0) {
+      finishTherapy();
+      return;
+    }
+  }
+
+  // ------------------------------------------------------------
+  // DONE states:
+  // Offline START immediately begins another run.
+  // STOP returns to the relevant ready/QR screen.
+  // ------------------------------------------------------------
+  else if (state == STATE_DONE || state == STATE_OFFLINE_DONE) {
+    if (buttonPressed(startBtn)) {
+      Serial.println("[BUTTON] START after completion");
+
+      if (onlineMode) {
+        clearActiveSession();
+        state = STATE_QR_WAIT;
+        drawQrWaitScreen();
+      } else {
+        state = STATE_OFFLINE_READY;
+        startTherapy();
+      }
+      return;
+    }
+
+    if (buttonPressed(stopBtn)) {
+      Serial.println("[BUTTON] STOP after completion");
+      setRelay(false);
+
+      if (onlineMode) {
+        clearActiveSession();
+        state = STATE_QR_WAIT;
+        drawQrWaitScreen();
+      } else {
+        state = STATE_OFFLINE_READY;
+        drawOfflineReadyScreen();
+      }
+      return;
     }
   }
 }
