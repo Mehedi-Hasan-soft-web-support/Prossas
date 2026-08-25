@@ -1,4 +1,4 @@
-
+<!-- 
 <!doctype html>
 <html lang="en">
 <head>
@@ -520,6 +520,1093 @@ updateSummary();
 testConnection();
 searchPatients(true);
 loadHistory();
+</script>
+</body>
+</html> -->
+
+
+
+
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#eaf7ec" />
+<title>প্রশ্বাস · Nebulizer Console</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Baloo+Da+2:wght@600;700&family=Nunito:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fffdf6;
+  --mint:#eaf7ec;
+  --mint-2:#d9efdd;
+  --ink:#1b2a21;
+  --soft:#63796c;
+  --hair:#d6e9d9;
+  --green:#35b44a;
+  --green-d:#2a9a3d;
+  --leaf:#8ad696;
+  --sun:#f2b32c;
+  --sky:#6fc0e6;
+  --red:#e05a4e;
+  --amber:#dd9410;
+  --sh-s:0 2px 0 rgba(27,42,33,.05);
+  --sh-m:0 16px 30px -18px rgba(27,60,38,.4);
+  --sh-l:0 34px 60px -28px rgba(27,60,38,.45);
+  --r-xl:34px;
+  --r-lg:26px;
+  --r-md:18px;
+  --r-sm:14px;
+  --display:"Baloo 2","Baloo Da 2",ui-rounded,system-ui,sans-serif;
+  --body:"Nunito","Hind Siliguri",ui-sans-serif,system-ui,sans-serif;
+  --mono:"DM Mono",ui-monospace,Menlo,monospace;
+  --squiggle:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='10' viewBox='0 0 90 10'%3E%3Cpath d='M2 7 Q 13 1 24 6 T 46 6 T 68 6 T 88 5' fill='none' stroke='%2335b44a' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;min-height:100vh;
+  font-family:var(--body);color:var(--ink);
+  font-size:15px;line-height:1.65;
+  background:var(--mint);
+  -webkit-font-smoothing:antialiased;
+}
+body::before,body::after{
+  content:"";position:fixed;z-index:0;pointer-events:none;filter:blur(70px);opacity:.75;
+}
+body::before{
+  width:48vw;height:38vw;left:-12vw;top:-10vw;
+  border-radius:56% 44% 62% 38%/48% 58% 42% 52%;
+  background:radial-gradient(circle,#c9ecd0 0%,rgba(201,236,208,0) 72%);
+  animation:sway 30s ease-in-out infinite alternate;
+}
+body::after{
+  width:44vw;height:36vw;right:-10vw;top:34vh;
+  border-radius:42% 58% 38% 62%/56% 44% 60% 40%;
+  background:radial-gradient(circle,#fdf0c6 0%,rgba(253,240,198,0) 72%);
+  animation:sway 38s ease-in-out infinite alternate-reverse;
+}
+@keyframes sway{from{transform:translate3d(0,0,0) rotate(0)}to{transform:translate3d(3vw,4vh,0) rotate(8deg)}}
+
+.shell{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:16px 22px 70px}
+
+/* ---------- nav ---------- */
+.topnav{
+  position:sticky;top:14px;z-index:30;
+  display:flex;align-items:center;gap:18px;
+  background:var(--paper);border:2px solid var(--hair);
+  border-radius:999px;padding:10px 12px 10px 16px;box-shadow:var(--sh-m);
+}
+.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.mark{
+  width:46px;height:46px;flex:none;display:grid;place-items:center;
+  border-radius:50% 50% 46% 54%/54% 46% 50% 50%;
+  background:linear-gradient(150deg,var(--leaf),var(--green));
+  box-shadow:0 8px 16px -6px rgba(53,180,74,.7);
+}
+.mark svg{width:24px;height:24px}
+.brand h1{
+  margin:0;font-family:var(--display);font-weight:700;font-size:25px;
+  line-height:1.1;color:var(--ink);
+}
+.brand p{margin:0;font-size:11.5px;font-weight:700;color:var(--soft);letter-spacing:.02em}
+.navlinks{display:flex;gap:2px;background:var(--mint);padding:4px;border-radius:999px}
+.navbtn{
+  border:0;background:transparent;color:var(--soft);
+  padding:9px 18px;border-radius:999px;cursor:pointer;
+  font-family:var(--body);font-weight:700;font-size:14px;
+  transition:color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.navbtn:hover{color:var(--green-d)}
+.navbtn.active{background:var(--paper);color:var(--ink);box-shadow:var(--sh-s)}
+.status{
+  font-family:var(--mono);font-size:11.5px;
+  padding:9px 15px;border-radius:999px;white-space:nowrap;
+  border:2px solid rgba(53,180,74,.3);background:rgba(53,180,74,.1);color:var(--green-d);
+}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:1.02fr .98fr;gap:22px;margin:26px 0 30px;align-items:stretch}
+.heroCopy{
+  background:var(--paper);border:2px solid var(--hair);border-radius:var(--r-xl);
+  padding:36px 36px 28px;display:flex;flex-direction:column;box-shadow:var(--sh-m);
+}
+.eyebrow{
+  align-self:flex-start;margin:0 0 18px;transform:rotate(-1.6deg);
+  display:inline-flex;align-items:center;gap:8px;
+  border:2px dashed rgba(53,180,74,.5);border-radius:999px;
+  background:var(--mint);padding:6px 14px;
+  font-size:12.5px;font-weight:700;color:var(--green-d);
+}
+.eyebrow span{width:7px;height:7px;border-radius:50%;background:var(--sun)}
+.heroCopy h2{
+  font-family:var(--display);font-weight:700;font-size:clamp(30px,3.6vw,45px);
+  line-height:1.18;margin:0 0 16px;color:var(--ink);
+}
+.heroCopy h2 em{
+  font-style:normal;display:inline-block;
+  border:2.6px solid var(--green);border-radius:12px;
+  padding:0 10px;transform:rotate(-1.4deg);color:var(--green-d);
+}
+.heroCopy p.lede{margin:0;color:var(--soft);max-width:44ch;font-size:15.5px}
+
+/* three live chips, like a stat row */
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:auto;padding-top:30px}
+.summaryItem{
+  display:flex;flex-direction:column;gap:3px;
+  border:2px solid var(--hair);border-radius:var(--r-md);
+  background:var(--mint);padding:13px 15px;
+  transition:transform .2s ease,border-color .2s ease;
+}
+.summaryItem:hover{transform:translateY(-3px);border-color:var(--leaf)}
+.summaryItem span{font-size:11.5px;font-weight:700;color:var(--soft)}
+.summaryItem strong{
+  font-family:var(--display);font-weight:700;font-size:16px;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* ---------- signature: device mirror on a hill ---------- */
+.mirror{
+  position:relative;overflow:hidden;
+  background:var(--paper);border:2px solid var(--hair);border-radius:var(--r-xl);
+  padding:30px 26px 0;box-shadow:var(--sh-m);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+}
+.hill{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;display:block}
+.mirrorTag{
+  position:relative;z-index:2;transform:rotate(1.4deg);
+  background:var(--sun);color:#3a2a00;border-radius:8px;padding:5px 13px;
+  font-size:12px;font-weight:700;box-shadow:0 6px 14px -8px rgba(180,130,0,.9);
+}
+.bezel{
+  position:relative;z-index:2;width:100%;max-width:330px;
+  padding:14px;border-radius:22px;
+  background:linear-gradient(160deg,#2f4a37,#16251b);
+  box-shadow:0 22px 40px -16px rgba(20,45,26,.75),inset 0 2px 0 rgba(255,255,255,.14);
+  animation:float 7s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.bezel svg{display:block;width:100%;height:auto;border-radius:5px}
+.pixelGrid{
+  position:absolute;inset:14px;border-radius:5px;pointer-events:none;
+  background-image:linear-gradient(rgba(10,25,14,.45) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(10,25,14,.45) 1px,transparent 1px);
+  background-size:2.6px 2.6px;opacity:.5;
+}
+.mirrorFoot{position:relative;z-index:2;text-align:center;padding-bottom:30px}
+.mirrorFoot strong{
+  display:block;font-family:var(--mono);font-size:17px;color:var(--ink);
+}
+.mirrorFoot small{display:block;margin-top:2px;color:var(--soft);font-size:12.5px}
+
+/* ---------- step rail ---------- */
+.stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.step{
+  display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;
+  border:2px solid var(--hair);border-radius:var(--r-lg);
+  background:var(--paper);padding:15px 18px;font-family:var(--body);
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+.step:hover{transform:translateY(-3px);box-shadow:var(--sh-m)}
+.stepNo{
+  width:42px;height:42px;flex:none;display:grid;place-items:center;
+  border-radius:50% 50% 48% 52%/52% 48% 50% 50%;
+  font-family:var(--display);font-weight:700;font-size:17px;
+  background:var(--mint);color:var(--soft);
+  transition:background .2s ease,color .2s ease,transform .2s ease;
+}
+.step b{display:block;font-family:var(--display);font-weight:700;font-size:16.5px;line-height:1.25}
+.step small{color:var(--soft);font-size:12.5px}
+.step.active{border-color:var(--green);box-shadow:0 14px 26px -16px rgba(53,180,74,.9)}
+.step.active .stepNo{background:linear-gradient(150deg,var(--leaf),var(--green));color:#fff;transform:rotate(-6deg)}
+.step.done .stepNo{background:rgba(53,180,74,.16);color:var(--green-d)}
+
+/* ---------- cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:22px}
+.card{
+  grid-column:span 12;border-radius:var(--r-xl);padding:30px 30px 26px;
+  background:var(--paper);border:2px solid var(--hair);box-shadow:var(--sh-m);
+}
+.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}
+.span7{grid-column:span 7}.span8{grid-column:span 8}
+.card h3{
+  margin:0 0 16px;font-family:var(--display);font-weight:700;font-size:23px;
+  line-height:1.2;color:var(--ink);position:relative;padding-bottom:13px;
+}
+.card h3::after{
+  content:"";position:absolute;left:0;bottom:0;width:78px;height:9px;
+  background:var(--squiggle) no-repeat left center;background-size:78px 9px;
+}
+.hint{margin:0 0 20px;color:var(--soft);font-size:14px}
+
+/* ---------- form ---------- */
+label{display:block;margin:15px 0 6px;font-size:12.5px;font-weight:700;color:var(--soft)}
+input,select,textarea{
+  width:100%;font-family:var(--body);font-size:15px;font-weight:500;color:var(--ink);
+  border:2px solid var(--hair);background:var(--mint);
+  border-radius:var(--r-sm);padding:12px 15px;outline:none;
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
+}
+input::placeholder,textarea::placeholder{color:#9ab2a2;font-weight:400}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--green);background:var(--paper);
+  box-shadow:0 0 0 4px rgba(53,180,74,.14);
+}
+textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.actions.right{justify-content:flex-end}
+
+button.primary,button.secondary,button.ghost,button.danger{
+  border:0;border-radius:999px;padding:12px 22px;cursor:pointer;
+  font-family:var(--body);font-weight:700;font-size:14px;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+}
+button.primary{
+  background:linear-gradient(150deg,var(--leaf),var(--green));color:#fff;
+  box-shadow:0 12px 22px -12px rgba(42,154,61,.95);
+}
+button.primary::after{content:"\2192";font-weight:700;transition:transform .18s ease}
+button.primary:hover:not(:disabled){transform:translateY(-2px)}
+button.primary:hover:not(:disabled)::after{transform:translateX(3px)}
+button.secondary{background:var(--paper);color:var(--green-d);border:2px solid var(--hair)}
+button.secondary:hover:not(:disabled){border-color:var(--leaf)}
+button.ghost{background:transparent;color:var(--green-d);border:2px solid var(--hair)}
+button.danger{background:var(--red);color:#fff}
+button:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.step:focus-visible{
+  outline:3px solid var(--green);outline-offset:2px;
+}
+
+/* ---------- results ---------- */
+.searchResults{display:grid;gap:9px;margin-top:16px}
+.person{
+  width:100%;border:2px solid var(--hair);background:var(--mint);
+  border-radius:var(--r-md);padding:13px 16px;cursor:pointer;text-align:left;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  font-family:var(--body);transition:border-color .16s ease,transform .16s ease,background .16s ease;
+}
+.person:hover{border-color:var(--green);background:var(--paper);transform:translateX(3px)}
+.person strong{display:block;font-family:var(--display);font-weight:700;font-size:16px}
+.person small{display:block;color:var(--soft);font-family:var(--mono);font-size:11.5px}
+.pill{
+  display:inline-flex;align-items:center;border-radius:999px;padding:6px 13px;
+  background:var(--green);color:#fff;font-size:11.5px;font-weight:700;
+}
+.selectedBox{
+  border:2px solid rgba(53,180,74,.34);background:rgba(53,180,74,.09);
+  border-radius:var(--r-md);padding:15px 17px;margin-top:16px;
+  color:#1f6b32;font-size:14px;
+}
+.selectedBox b{display:block;font-family:var(--display);font-size:17px;color:#175a27;margin-bottom:2px}
+.empty{
+  padding:24px;border:2px dashed var(--hair);border-radius:var(--r-md);
+  color:var(--soft);text-align:center;background:var(--mint);font-size:14px;
+}
+
+/* ---------- scanner ---------- */
+.scannerBox{
+  border:2px dashed rgba(53,180,74,.45);border-radius:var(--r-lg);
+  background:var(--mint);padding:18px;min-height:238px;
+  display:grid;place-items:center;text-align:center;color:var(--soft);font-size:14px;
+}
+.scannerBox b{display:block;font-family:var(--display);font-size:18px;color:var(--ink);margin-bottom:2px}
+video{width:100%;max-height:320px;object-fit:cover;border-radius:var(--r-lg);background:#16251b}
+
+.checklist{list-style:none;margin:0;padding:0;display:grid;gap:13px}
+.checklist li{display:flex;gap:13px;align-items:flex-start;font-size:14px;color:var(--soft)}
+.checklist i{
+  width:26px;height:26px;flex:none;margin-top:1px;
+  border-radius:50% 50% 46% 54%/54% 46% 50% 50%;
+  background:var(--mint);color:var(--green-d);
+  font-style:normal;font-family:var(--display);font-size:14px;font-weight:700;
+  display:grid;place-items:center;
+}
+.checklist b{color:var(--ink);font-weight:700}
+
+/* ---------- history ---------- */
+.toolbar{display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:18px}
+.tableWrap{overflow:auto;border:2px solid var(--hair);border-radius:var(--r-lg);background:var(--paper)}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th,td{padding:14px 15px;border-bottom:2px solid var(--mint);font-size:13.5px;text-align:left;vertical-align:top}
+th{background:var(--mint);color:var(--soft);position:sticky;top:0;font-size:12px;font-weight:700}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:rgba(234,247,236,.6)}
+td b{font-family:var(--display);font-weight:700;font-size:15px}
+td small{color:var(--soft);font-family:var(--mono);font-size:11.5px}
+.badge{display:inline-block;border-radius:999px;padding:5px 13px;font-size:11.5px;font-weight:700}
+.assigned{background:rgba(111,192,230,.22);color:#1d6d92}
+.running{background:rgba(242,179,44,.24);color:#8a6100}
+.completed{background:rgba(53,180,74,.18);color:var(--green-d)}
+.cancelled{background:rgba(224,90,78,.16);color:#a83428}
+.offline{background:rgba(99,121,108,.16);color:var(--soft)}
+
+/* ---------- misc ---------- */
+.miniText{color:var(--soft);font-size:14px;margin:0}
+.divider{
+  height:9px;margin:20px 0;
+  background:var(--squiggle) repeat-x left center;background-size:78px 9px;opacity:.55;
+}
+.view{display:none}
+.view.active{display:block;animation:pop .42s cubic-bezier(.22,.8,.3,1) both}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.995)}to{opacity:1;transform:none}}
+.hidden{display:none!important}
+.toast{
+  position:fixed;right:22px;bottom:22px;max-width:370px;z-index:60;
+  background:#1b2a21;color:#f2fff4;padding:15px 20px;border-radius:var(--r-md);
+  box-shadow:var(--sh-l);font-size:14px;font-weight:600;
+  animation:pop .3s ease both;
+}
+.foot{margin-top:34px;text-align:center;color:var(--soft);font-size:13px}
+
+@media(max-width:980px){
+  .hero{grid-template-columns:1fr}
+  .heroCopy{padding:30px 24px 24px}
+  .stepbar{grid-template-columns:1fr}
+  .span4,.span5,.span6,.span7,.span8{grid-column:span 12}
+}
+@media(max-width:760px){
+  .shell{padding:14px 14px 50px}
+  .topnav{flex-direction:column;align-items:stretch;position:relative;top:0;border-radius:var(--r-lg)}
+  .navlinks{justify-content:space-between}
+  .navbtn{flex:1;padding:9px 6px}
+  .status{text-align:center}
+  .summary{grid-template-columns:1fr}
+  .row,.toolbar{grid-template-columns:1fr}
+  .card{padding:24px 20px 22px}
+  .toast{left:14px;right:14px;max-width:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+
+/* ---------- auth gate ---------- */
+body.locked{overflow:hidden}
+body.locked .shell{display:none}
+.authGate{
+  position:fixed;inset:0;z-index:80;overflow:auto;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:var(--mint);
+}
+.authHill{position:fixed;left:0;right:0;bottom:0;width:100%;height:auto;display:block;z-index:-1}
+.authCard{
+  position:relative;width:100%;max-width:430px;
+  background:var(--paper);border:2px solid var(--hair);border-radius:var(--r-xl);
+  padding:34px 32px 30px;box-shadow:var(--sh-l);
+}
+.authBrand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.authBrand h1{margin:0;font-family:var(--display);font-weight:700;font-size:25px;line-height:1.1}
+.authBrand p{margin:0;font-size:11.5px;font-weight:700;color:var(--soft)}
+.authCard h2{
+  font-family:var(--display);font-weight:700;font-size:27px;line-height:1.2;
+  margin:0 0 6px;color:var(--ink);
+}
+.authCard h2 em{font-style:normal;color:var(--green-d)}
+.authCard .lede{margin:0 0 6px;color:var(--soft);font-size:14px}
+.authMsg{
+  margin-top:16px;border-radius:var(--r-sm);padding:11px 14px;font-size:13.5px;font-weight:600;
+}
+.authMsg.info{background:var(--mint);color:var(--soft);border:2px solid var(--hair)}
+.authMsg.error{background:rgba(224,90,78,.1);color:#a83428;border:2px solid rgba(224,90,78,.3)}
+.authMsg.ok{background:rgba(53,180,74,.1);color:var(--green-d);border:2px solid rgba(53,180,74,.32)}
+.authFoot{margin:20px 0 0;font-size:13px;color:var(--soft);text-align:center}
+.linkBtn{
+  border:0;background:none;padding:0;cursor:pointer;
+  font-family:var(--body);font-size:13px;font-weight:700;color:var(--green-d);
+  text-decoration:underline;text-underline-offset:3px;
+}
+#userChip{
+  font-family:var(--mono);font-size:11.5px;color:var(--soft);
+  max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#signOutBtn{padding:9px 16px;font-size:13px}
+@media(max-width:760px){
+  .authCard{padding:28px 22px 24px}
+  #userChip{max-width:none}
+}
+</style>
+</head>
+<body>
+<div class="authGate" id="authGate">
+  <svg class="authHill" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 62 C 70 22 130 34 200 52 C 268 70 330 44 400 26 L400 120 L0 120 Z" fill="#d9efdd"/>
+    <path d="M0 84 C 84 52 148 66 212 78 C 282 92 340 74 400 58 L400 120 L0 120 Z" fill="#c2e6ca"/>
+  </svg>
+
+  <div class="authCard">
+    <div class="authBrand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3v6a4 4 0 0 1-4 4 3 3 0 0 0-3 3v3a3 3 0 0 0 3 3h1"/>
+          <path d="M15 3v6a4 4 0 0 0 4 4 3 3 0 0 1 3 3v1"/>
+          <circle cx="19" cy="20" r="2"/>
+        </svg>
+      </div>
+      <div>
+        <h1>প্রশ্বাস</h1>
+        <p>Nebulizer Console</p>
+      </div>
+    </div>
+
+    <h2 id="authTitle">Sign in to <em>continue</em></h2>
+    <p class="lede" id="authLede">Clinic staff এর জন্য। Supabase account দিয়ে login করুন।</p>
+
+    <label for="authEmail">Email</label>
+    <input id="authEmail" type="email" autocomplete="email" placeholder="you@clinic.org" />
+    <label for="authPassword">Password</label>
+    <input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
+
+    <div class="actions">
+      <button class="primary" id="authSubmitBtn">Sign in</button>
+      <button class="secondary" id="authForgotBtn">Reset password</button>
+    </div>
+
+    <div id="authMsg" class="authMsg info hidden"></div>
+
+    <p class="authFoot" id="authSwitchWrap">
+      <span id="authSwitchText">No account yet?</span>
+      <button class="linkBtn" id="authSwitchBtn">Create one</button>
+    </p>
+  </div>
+</div>
+<div class="shell">
+
+  <header class="topnav">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3v6a4 4 0 0 1-4 4 3 3 0 0 0-3 3v3a3 3 0 0 0 3 3h1"/>
+          <path d="M15 3v6a4 4 0 0 0 4 4 3 3 0 0 1 3 3v1"/>
+          <circle cx="19" cy="20" r="2"/>
+        </svg>
+      </div>
+      <div>
+        <h1>প্রশ্বাস</h1>
+        <p>Nebulizer Console</p>
+      </div>
+    </div>
+    <nav class="navlinks" aria-label="Sections">
+      <button class="navbtn active" data-view="workflow">Assign</button>
+      <button class="navbtn" data-view="history">History</button>
+      <button class="navbtn" data-view="settings">Settings</button>
+    </nav>
+    <div class="status" id="connectionStatus">Checking...</div>
+    <span id="userChip" class="hidden"></span>
+    <button class="ghost hidden" id="signOutBtn">Sign out</button>
+  </header>
+
+  <section class="hero">
+    <div class="heroCopy">
+      <p class="eyebrow"><span></span> Breathe easy. Made simple.</p>
+      <h2>Pair a patient with a device in <em>three steps</em>.</h2>
+      <p class="lede">প্রথমে patient select করুন, তারপর medicine ও dose দিন, শেষে device-এর screen থেকে QR scan করুন। Session সাথে সাথে nebulizer-এ পৌঁছে যাবে।</p>
+      <div class="summary">
+        <div class="summaryItem"><span>Patient</span><strong id="sumPatient">Not selected</strong></div>
+        <div class="summaryItem"><span>Therapy</span><strong id="sumTherapy">Not assigned</strong></div>
+        <div class="summaryItem"><span>Device</span><strong id="sumDevice">Not connected</strong></div>
+      </div>
+    </div>
+
+    <div class="mirror">
+      <svg class="hill" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 62 C 70 22 130 34 200 52 C 268 70 330 44 400 26 L400 120 L0 120 Z" fill="#d9efdd"/>
+        <path d="M0 84 C 84 52 148 66 212 78 C 282 92 340 74 400 58 L400 120 L0 120 Z" fill="#c2e6ca"/>
+      </svg>
+      <div class="mirrorTag">Device screen · live mirror</div>
+      <div class="bezel">
+        <svg viewBox="0 0 128 64" role="img" aria-label="Device OLED showing the pairing QR code">
+          <rect width="128" height="64" rx="2" fill="#16251b"/>
+          <rect width="128" height="11" fill="#e8fbea"/>
+          <text x="3" y="8" font-family="monospace" font-size="7" font-weight="700" fill="#16251b">QR CONNECT</text>
+          <text x="95" y="8" font-family="monospace" font-size="7" font-weight="700" fill="#16251b">ON W</text>
+          <rect x="2" y="13" width="50" height="50" fill="#e8fbea"/>
+          <path d="M6 17h14v2h-14zM24 17h2v2h-2zM28 17h4v2h-4zM34 17h14v2h-14zM6 19h2v2h-2zM18 19h2v2h-2zM24 19h6v2h-6zM34 19h2v2h-2zM46 19h2v2h-2zM6 21h2v2h-2zM10 21h6v2h-6zM18 21h2v2h-2zM22 21h4v2h-4zM28 21h4v2h-4zM34 21h2v2h-2zM38 21h6v2h-6zM46 21h2v2h-2zM6 23h2v2h-2zM10 23h6v2h-6zM18 23h2v2h-2zM24 23h2v2h-2zM28 23h2v2h-2zM34 23h2v2h-2zM38 23h6v2h-6zM46 23h2v2h-2zM6 25h2v2h-2zM10 25h6v2h-6zM18 25h2v2h-2zM26 25h2v2h-2zM30 25h2v2h-2zM34 25h2v2h-2zM38 25h6v2h-6zM46 25h2v2h-2zM6 27h2v2h-2zM18 27h2v2h-2zM30 27h2v2h-2zM34 27h2v2h-2zM46 27h2v2h-2zM6 29h14v2h-14zM22 29h2v2h-2zM26 29h2v2h-2zM30 29h2v2h-2zM34 29h14v2h-14zM22 31h4v2h-4zM28 31h4v2h-4zM6 33h6v2h-6zM14 33h16v2h-16zM32 33h4v2h-4zM42 33h2v2h-2zM6 35h2v2h-2zM10 35h8v2h-8zM20 35h2v2h-2zM32 35h2v2h-2zM36 35h2v2h-2zM40 35h6v2h-6zM10 37h14v2h-14zM30 37h2v2h-2zM34 37h2v2h-2zM38 37h2v2h-2zM42 37h2v2h-2zM46 37h2v2h-2zM8 39h6v2h-6zM20 39h2v2h-2zM26 39h2v2h-2zM32 39h2v2h-2zM40 39h6v2h-6zM6 41h8v2h-8zM18 41h4v2h-4zM26 41h2v2h-2zM30 41h2v2h-2zM36 41h4v2h-4zM22 43h4v2h-4zM28 43h2v2h-2zM32 43h2v2h-2zM38 43h8v2h-8zM6 45h14v2h-14zM22 45h2v2h-2zM28 45h2v2h-2zM34 45h2v2h-2zM38 45h2v2h-2zM42 45h6v2h-6zM6 47h2v2h-2zM18 47h2v2h-2zM22 47h2v2h-2zM28 47h6v2h-6zM38 47h2v2h-2zM42 47h6v2h-6zM6 49h2v2h-2zM10 49h6v2h-6zM18 49h2v2h-2zM22 49h2v2h-2zM28 49h2v2h-2zM34 49h4v2h-4zM42 49h6v2h-6zM6 51h2v2h-2zM10 51h6v2h-6zM18 51h2v2h-2zM24 51h4v2h-4zM34 51h8v2h-8zM44 51h2v2h-2zM6 53h2v2h-2zM10 53h6v2h-6zM18 53h2v2h-2zM22 53h2v2h-2zM30 53h2v2h-2zM36 53h2v2h-2zM40 53h4v2h-4zM46 53h2v2h-2zM6 55h2v2h-2zM18 55h2v2h-2zM22 55h2v2h-2zM26 55h2v2h-2zM34 55h2v2h-2zM38 55h2v2h-2zM42 55h6v2h-6zM6 57h14v2h-14zM22 57h4v2h-4zM30 57h2v2h-2zM34 57h6v2h-6zM46 57h2v2h-2z" fill="#16251b" shape-rendering="crispEdges"/>
+          <g font-family="monospace" font-size="8" fill="#e8fbea">
+            <text x="58" y="21">Scan QR</text>
+            <text x="58" y="32">or type</text>
+            <text x="58" y="43">PROSHASH</text>
+            <text x="58" y="54">-001</text>
+          </g>
+        </svg>
+        <div class="pixelGrid" aria-hidden="true"></div>
+      </div>
+      <div class="mirrorFoot">
+        <strong id="previewDeviceId">PROSHASH-001</strong>
+        <small>128×64 OLED · waiting to pair</small>
+      </div>
+    </div>
+  </section>
+
+  <main id="workflow" class="view active">
+    <div class="stepbar">
+      <button class="step active" data-step="1"><div class="stepNo">1</div><div><b>Patient</b><small>Create or find a profile</small></div></button>
+      <button class="step" data-step="2"><div class="stepNo">2</div><div><b>Therapy</b><small>Medicine and dose</small></div></button>
+      <button class="step" data-step="3"><div class="stepNo">3</div><div><b>Device</b><small>Scan the device QR</small></div></button>
+    </div>
+
+    <section id="step1" class="stepView">
+      <div class="grid">
+        <div class="card span6">
+          <h3>New patient</h3>
+          <p class="hint">Patient ID ফাঁকা রাখলে auto ID তৈরি হবে। পুরনো patient হলে পাশের panel থেকে search করুন।</p>
+          <label for="patientCode">Patient ID</label><input id="patientCode" placeholder="Leave blank for auto ID" />
+          <label for="patientName">Name</label><input id="patientName" placeholder="Full name" />
+          <div class="row">
+            <div><label for="patientAge">Age</label><input id="patientAge" type="number" min="0" placeholder="Years" /></div>
+            <div><label for="patientGender">Gender</label><select id="patientGender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+          </div>
+          <label for="patientPhone">Phone</label><input id="patientPhone" placeholder="01XXXXXXXXX" />
+          <label for="patientAddress">Address</label><textarea id="patientAddress" placeholder="Optional"></textarea>
+          <div class="actions">
+            <button class="primary" id="savePatientBtn">Save and select</button>
+            <button class="secondary" id="clearPatientFormBtn">Clear form</button>
+          </div>
+        </div>
+
+        <div class="card span6">
+          <h3>Find a patient</h3>
+          <p class="hint">Patient ID, name অথবা phone দিয়ে search করুন। Result থেকে select করলে পরের step unlock হবে।</p>
+          <label for="searchBox">Search</label><input id="searchBox" placeholder="ID, name or phone" />
+          <div class="actions">
+            <button class="primary" id="searchPatientBtn">Search</button>
+            <button class="secondary" id="loadRecentBtn">Recent patients</button>
+          </div>
+          <div id="patientResults" class="searchResults"><div class="empty">Search above, or open recent patients to pick one.</div></div>
+          <div id="selectedPatientBox" class="selectedBox hidden"></div>
+          <div class="actions right"><button class="primary" id="goStep2Btn" disabled>Next: therapy</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="step2" class="stepView hidden">
+      <div class="grid">
+        <div class="card span7">
+          <h3>Medicine and dose</h3>
+          <p class="hint">Duration এখানে record-এর জন্য default হিসেবে রাখা হয়; প্রকৃত time device-এর NEXT button থেকে select করা যাবে।</p>
+          <div class="row">
+            <div><label for="medicineName">Medicine</label><input id="medicineName" placeholder="Normal Saline" /></div>
+            <div><label for="dose">Dose</label><input id="dose" placeholder="2 ml" /></div>
+          </div>
+          <div class="row">
+            <div><label for="durationMin">Default duration</label><select id="durationMin"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option></select></div>
+            <div><label for="doctorName">Doctor or operator</label><input id="doctorName" placeholder="Optional" /></div>
+          </div>
+          <label for="doctorNote">Note</label><textarea id="doctorNote" placeholder="Optional instructions"></textarea>
+          <div class="actions">
+            <button class="secondary" id="backStep1Btn">Back</button>
+            <button class="primary" id="goStep3Btn">Next: connect device</button>
+          </div>
+        </div>
+
+        <div class="card span5">
+          <h3>Selected patient</h3>
+          <div id="therapyPatientPreview" class="selectedBox">No patient selected.</div>
+          <div class="divider"></div>
+          <p class="miniText">এই therapy এখনও save হয়নি। Step 3-এ device QR scan করলে Supabase-এ assigned session তৈরি হবে, এবং device সেটা poll করে নিয়ে নেবে।</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="step3" class="stepView hidden">
+      <div class="grid">
+        <div class="card span6">
+          <h3>Scan the device QR</h3>
+          <p class="hint">Device QR CONNECT mode-এ থাকলে screen-এ QR দেখা যাবে। Camera না চললে নিচে device ID লিখে দিন।</p>
+          <div id="scannerBox" class="scannerBox">
+            <div>
+              <b>Camera is off</b>
+              <span>Start the camera, then hold the device screen in frame.</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="startScanBtn">Start camera</button>
+            <button class="secondary" id="stopScanBtn">Stop camera</button>
+          </div>
+          <label for="deviceId">Device ID</label><input id="deviceId" placeholder="PROSHASH-001" />
+          <div class="actions">
+            <button class="secondary" id="backStep2Btn">Back</button>
+            <button class="primary" id="connectDeviceBtn">Connect and save session</button>
+          </div>
+        </div>
+
+        <div class="card span6">
+          <h3>What happens next</h3>
+          <p class="hint">Session save হওয়ার পর নিয়ন্ত্রণ device-এর কাছে চলে যায়।</p>
+          <ul class="checklist">
+            <li><i>1</i><div><b>Device picks it up</b> — poll করে পাঁচ সেকেন্ডের মধ্যে patient ও medicine screen-এ দেখায়।</div></li>
+            <li><i>2</i><div><b>Operator picks the time</b> — NEXT দিয়ে 5 থেকে 30 মিনিট, তারপর START।</div></li>
+            <li><i>3</i><div><b>Therapy runs</b> — relay ON, countdown চলে, শেষ ১০ সেকেন্ডে buzzer beep হয়।</div></li>
+            <li><i>4</i><div><b>Log closes itself</b> — complete হলে status ও actual duration History-তে চলে আসে।</div></li>
+          </ul>
+          <div id="sessionResult" class="selectedBox hidden"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main id="history" class="view">
+    <div class="grid">
+      <div class="card">
+        <h3>Therapy history</h3>
+        <p class="hint">শেষ ৮০টি session। Patient, phone, medicine, device অথবা status দিয়ে filter করা যায়।</p>
+        <div class="toolbar">
+          <input id="historySearch" placeholder="Filter by patient, device, medicine or status" />
+          <button class="primary" id="refreshHistoryBtn">Refresh</button>
+        </div>
+        <div class="tableWrap">
+          <table>
+            <thead><tr><th>Time</th><th>Patient</th><th>Phone</th><th>Medicine</th><th>Dose</th><th>Duration</th><th>Device</th><th>Status</th><th>Session</th></tr></thead>
+            <tbody id="historyBody"><tr><td colspan="9">Loading history...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <main id="settings" class="view">
+    <div class="grid">
+      <div class="card span7">
+        <h3>Supabase connection</h3>
+        <p class="hint">Project URL ও anon key already set করা আছে। বদলাতে হলে edit করে save করুন; এই browser-এই জমা থাকবে।</p>
+        <label for="supabaseUrl">Project URL</label><input id="supabaseUrl" />
+        <label for="supabaseKey">Anon key</label><textarea id="supabaseKey"></textarea>
+        <div class="actions">
+          <button class="primary" id="saveSettingsBtn">Save settings</button>
+          <button class="secondary" id="testConnectionBtn">Test connection</button>
+        </div>
+      </div>
+      <div class="card span5">
+        <h3>Device pins</h3>
+        <p class="hint">Firmware-এর বর্তমান wiring reference।</p>
+        <ul class="checklist">
+          <li><i>D</i><div><b>OLED</b> — SDA GPIO23, SCL GPIO18, addr 0x3C</div></li>
+          <li><i>B</i><div><b>Buzzer</b> — GPIO13</div></li>
+          <li><i>R</i><div><b>Relay</b> — GPIO26, active low</div></li>
+          <li><i>K</i><div><b>Buttons</b> — NEXT 32, START 33, STOP 25, MODE 27</div></li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <p class="foot">প্রশ্বাস · ESP32 + Supabase</p>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const DEFAULT_SUPABASE_URL = 'https://tormothdvqfzetcrygeb.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcm1vdGhkdnFmemV0Y3J5Z2ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTA2NzEsImV4cCI6MjA5ODYyNjY3MX0.QcaxGNdd4MJqxl06u3QfYmHI8U49ipqv17SJL5wL2yM';
+let supabaseClient;
+let selectedPatient = null;
+let assignedTherapy = null;
+let currentStep = 1;
+let stream = null;
+let scanTimer = null;
+
+function $(id){ return document.getElementById(id); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),3500); }
+function safe(v){ return (v===null || v===undefined || v==='') ? '—' : String(v); }
+function nowCode(){ return Date.now().toString().slice(-6); }
+
+function initSupabase(){
+  const url = localStorage.getItem('proshash_url') || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem('proshash_key') || DEFAULT_SUPABASE_KEY;
+  $('supabaseUrl').value = url;
+  $('supabaseKey').value = key;
+  supabaseClient = supabase.createClient(url, key);
+}
+
+async function testConnection(){
+  try{
+    const { error } = await supabaseClient.from('patients').select('id').limit(1);
+    if(error) throw error;
+    $('connectionStatus').textContent = 'Supabase Connected';
+    $('connectionStatus').style.color = 'var(--green)';
+    $('connectionStatus').style.background = '#effdf7';
+    toast('Supabase connected.');
+  }catch(err){
+    $('connectionStatus').textContent = 'Connection Error';
+    $('connectionStatus').style.color = 'var(--red)';
+    $('connectionStatus').style.background = '#fef2f2';
+    toast('Connection error: ' + err.message);
+  }
+}
+
+function switchView(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  $(view).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  if(view==='history') loadHistory();
+}
+
+function setStep(step){
+  currentStep = Number(step);
+  document.querySelectorAll('.stepView').forEach(v=>v.classList.add('hidden'));
+  $('step'+currentStep).classList.remove('hidden');
+  document.querySelectorAll('.step').forEach(s=>{
+    const n = Number(s.dataset.step);
+    s.classList.toggle('active', n===currentStep);
+    s.classList.toggle('done', n<currentStep);
+  });
+}
+
+function updateSummary(){
+  $('sumPatient').textContent = selectedPatient ? `${selectedPatient.name} (${selectedPatient.patient_code})` : 'Not selected';
+  $('sumTherapy').textContent = assignedTherapy ? `${assignedTherapy.medicine_name || 'Medicine'} / ${assignedTherapy.dose || 'Dose'} / ${assignedTherapy.selected_duration_min} min` : 'Not assigned';
+  const dev = $('deviceId').value.trim();
+  $('sumDevice').textContent = dev || 'Not connected';
+  $('previewDeviceId').textContent = dev || 'PROSHASH-001';
+  $('goStep2Btn').disabled = !selectedPatient;
+  $('therapyPatientPreview').innerHTML = selectedPatient ? `<b>${selectedPatient.name}</b>Patient ID: ${selectedPatient.patient_code}<br>Phone: ${safe(selectedPatient.phone)}<br>Age: ${safe(selectedPatient.age)}` : 'No patient selected.';
+}
+
+async function savePatient(){
+  const payload = {
+    patient_code: $('patientCode').value.trim() || ('P-' + nowCode()),
+    name: $('patientName').value.trim(),
+    age: $('patientAge').value ? Number($('patientAge').value) : null,
+    phone: $('patientPhone').value.trim() || null,
+    gender: $('patientGender').value || null,
+    address: $('patientAddress').value.trim() || null
+  };
+  if(!payload.name){ toast('Patient name required.'); return; }
+  try{
+    const { data, error } = await supabaseClient.from('patients').upsert(payload, { onConflict:'patient_code' }).select().single();
+    if(error) throw error;
+    selectPatient(data);
+    toast('Patient saved and selected.');
+    setStep(2);
+  }catch(err){ toast('Patient save error: ' + err.message); }
+}
+
+function selectPatient(p){
+  selectedPatient = p;
+  $('selectedPatientBox').classList.remove('hidden');
+  $('selectedPatientBox').innerHTML = `<b>${p.name}</b>Patient ID: ${p.patient_code}<br>Phone: ${safe(p.phone)}<br>Age: ${safe(p.age)}`;
+  updateSummary();
+}
+
+async function searchPatients(recent=false){
+  const q = $('searchBox').value.trim();
+  let query = supabaseClient.from('patients').select('*').order('created_at',{ascending:false}).limit(10);
+  if(!recent && q){ query = query.or(`patient_code.ilike.%${q}%,name.ilike.%${q}%,phone.ilike.%${q}%`); }
+  try{
+    const { data, error } = await query;
+    if(error) throw error;
+    renderPatientResults(data || []);
+  }catch(err){ toast('Search error: ' + err.message); }
+}
+
+function renderPatientResults(list){
+  const box = $('patientResults');
+  if(!list.length){ box.innerHTML = '<div class="empty">No patient found.</div>'; return; }
+  box.innerHTML = '';
+  list.forEach(p=>{
+    const b = document.createElement('button');
+    b.className = 'person';
+    b.innerHTML = `<div><strong>${safe(p.name)}</strong><small>${safe(p.patient_code)} · ${safe(p.phone)}</small></div><span class="pill">Select</span>`;
+    b.onclick = ()=>selectPatient(p);
+    box.appendChild(b);
+  });
+}
+
+function prepareTherapy(){
+  if(!selectedPatient){ toast('Select patient first.'); setStep(1); return; }
+  const medicine_name = $('medicineName').value.trim();
+  const dose = $('dose').value.trim();
+  if(!medicine_name){ toast('Medicine name required.'); return; }
+  assignedTherapy = {
+    medicine_name,
+    dose,
+    selected_duration_min: Number($('durationMin').value),
+    doctor_note: (($('doctorName').value.trim() ? 'Doctor: ' + $('doctorName').value.trim() + '. ' : '') + $('doctorNote').value.trim()).trim()
+  };
+  updateSummary();
+  setStep(3);
+}
+
+function parseDeviceId(text){
+  const raw = String(text || '').trim();
+  if(!raw) return '';
+  try{
+    const u = new URL(raw);
+    const d = u.searchParams.get('device') || u.searchParams.get('device_id') || u.searchParams.get('id');
+    if(d) return d.trim();
+    return u.pathname.split('/').filter(Boolean).pop() || raw;
+  }catch(e){
+    if(raw.startsWith('{')){ try{ const j=JSON.parse(raw); return j.device_id || j.device || raw; }catch(_){} }
+    return raw;
+  }
+}
+
+async function startScanner(){
+  if(!('BarcodeDetector' in window)){
+    toast('This browser does not support BarcodeDetector. Use manual Device ID.');
+    return;
+  }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false });
+    const video = document.createElement('video');
+    video.setAttribute('playsinline','true');
+    video.autoplay = true;
+    video.srcObject = stream;
+    $('scannerBox').innerHTML = '';
+    $('scannerBox').appendChild(video);
+    const detector = new BarcodeDetector({ formats:['qr_code'] });
+    scanTimer = setInterval(async()=>{
+      try{
+        const codes = await detector.detect(video);
+        if(codes.length){
+          const id = parseDeviceId(codes[0].rawValue);
+          $('deviceId').value = id;
+          updateSummary();
+          stopScanner();
+          toast('Device QR scanned: ' + id);
+        }
+      }catch(e){}
+    },700);
+  }catch(err){ toast('Camera error: ' + err.message); }
+}
+
+function stopScanner(){
+  if(scanTimer){ clearInterval(scanTimer); scanTimer=null; }
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  $('scannerBox').innerHTML = '<div><b>Camera scanner is off</b><br><span>Press Start Camera and scan ESP32 QR.</span></div>';
+}
+
+async function connectDevice(){
+  if(!selectedPatient){ toast('Select patient first.'); setStep(1); return; }
+  if(!assignedTherapy){ toast('Assign therapy first.'); setStep(2); return; }
+  const device_id = $('deviceId').value.trim();
+  if(!device_id){ toast('Scan QR or enter Device ID.'); return; }
+  const payload = {
+    patient_id: selectedPatient.id,
+    patient_code: selectedPatient.patient_code,
+    patient_name: selectedPatient.name,
+    patient_phone: selectedPatient.phone,
+    medicine_name: assignedTherapy.medicine_name,
+    dose: assignedTherapy.dose,
+    doctor_note: assignedTherapy.doctor_note,
+    selected_duration_min: assignedTherapy.selected_duration_min,
+    device_id,
+    status: 'assigned'
+  };
+  try{
+    const { data, error } = await supabaseClient.from('therapy_sessions').insert(payload).select().single();
+    if(error) throw error;
+    $('sessionResult').classList.remove('hidden');
+    $('sessionResult').innerHTML = `<b>Device connected.</b>Session: ${data.session_code}<br>Patient: ${data.patient_name}<br>Device: ${data.device_id}<br>Status: assigned`;
+    toast('Session assigned to ESP32.');
+    updateSummary();
+    loadHistory();
+  }catch(err){ toast('Session save error: ' + err.message); }
+}
+
+async function loadHistory(){
+  try{
+    const q = $('historySearch') ? $('historySearch').value.trim().toLowerCase() : '';
+    const { data, error } = await supabaseClient.from('therapy_sessions').select('*').order('created_at',{ascending:false}).limit(80);
+    if(error) throw error;
+    let rows = data || [];
+    if(q){ rows = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)); }
+    const body = $('historyBody');
+    if(!rows.length){ body.innerHTML = '<tr><td colspan="9">No history found.</td></tr>'; return; }
+    body.innerHTML = rows.map(r=>`<tr>
+      <td>${new Date(r.created_at).toLocaleString()}</td>
+      <td><b>${safe(r.patient_name)}</b><br><small>${safe(r.patient_code)}</small></td>
+      <td>${safe(r.patient_phone)}</td>
+      <td>${safe(r.medicine_name)}</td>
+      <td>${safe(r.dose)}</td>
+      <td>${safe(r.selected_duration_min)} min<br><small>${r.actual_duration_sec ? r.actual_duration_sec+' sec actual' : ''}</small></td>
+      <td>${safe(r.device_id)}</td>
+      <td><span class="badge ${safe(r.status)}">${safe(r.status)}</span></td>
+      <td>${safe(r.session_code)}</td>
+    </tr>`).join('');
+  }catch(err){ toast('History error: ' + err.message); }
+}
+
+function clearPatientForm(){ ['patientCode','patientName','patientAge','patientPhone','patientAddress'].forEach(id=>$(id).value=''); $('patientGender').value=''; }
+
+function bindEvents(){
+  document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+  document.querySelectorAll('.step').forEach(s=>s.onclick=()=>setStep(s.dataset.step));
+  $('savePatientBtn').onclick = savePatient;
+  $('clearPatientFormBtn').onclick = clearPatientForm;
+  $('searchPatientBtn').onclick = ()=>searchPatients(false);
+  $('loadRecentBtn').onclick = ()=>searchPatients(true);
+  $('goStep2Btn').onclick = ()=>setStep(2);
+  $('backStep1Btn').onclick = ()=>setStep(1);
+  $('goStep3Btn').onclick = prepareTherapy;
+  $('backStep2Btn').onclick = ()=>setStep(2);
+  $('startScanBtn').onclick = startScanner;
+  $('stopScanBtn').onclick = stopScanner;
+  $('connectDeviceBtn').onclick = connectDevice;
+  $('refreshHistoryBtn').onclick = loadHistory;
+  $('historySearch').addEventListener('input', ()=>loadHistory());
+  $('deviceId').addEventListener('input', updateSummary);
+  $('saveSettingsBtn').onclick = ()=>{ localStorage.setItem('proshash_url',$('supabaseUrl').value.trim()); localStorage.setItem('proshash_key',$('supabaseKey').value.trim()); initSupabase(); toast('Settings saved.'); testConnection(); };
+  $('testConnectionBtn').onclick = testConnection;
+}
+
+initSupabase();
+bindEvents();
+updateSummary();
+testConnection();
+searchPatients(true);
+loadHistory();
+</script>
+<script>
+/* ---------- Supabase auth gate ----------
+   Runs after the app script. Reuses the same supabaseClient, so nothing above
+   this point needed to change. Session is persisted by supabase-js in
+   localStorage, so a refresh keeps you signed in. */
+(function(){
+  var origToast = toast;
+  var unlocked = false;
+  var mode = 'signin';
+
+  /* Keep the app's toasts quiet until the operator is actually signed in,
+     otherwise RLS errors fire before anyone has had a chance to log in. */
+  toast = function(m){ if(!unlocked) return; origToast(m); };
+
+  var gate       = document.getElementById('authGate');
+  var msgEl      = document.getElementById('authMsg');
+  var emailEl    = document.getElementById('authEmail');
+  var passEl     = document.getElementById('authPassword');
+  var submitBtn  = document.getElementById('authSubmitBtn');
+  var forgotBtn  = document.getElementById('authForgotBtn');
+  var switchBtn  = document.getElementById('authSwitchBtn');
+  var switchText = document.getElementById('authSwitchText');
+  var titleEl    = document.getElementById('authTitle');
+  var ledeEl     = document.getElementById('authLede');
+  var userChip   = document.getElementById('userChip');
+  var signOutBtn = document.getElementById('signOutBtn');
+
+  function note(text, kind){
+    if(!text){ msgEl.classList.add('hidden'); msgEl.textContent=''; return; }
+    msgEl.textContent = text;
+    msgEl.className = 'authMsg ' + (kind || 'info');
+  }
+  function busy(on){
+    submitBtn.disabled = on; forgotBtn.disabled = on; switchBtn.disabled = on;
+    submitBtn.textContent = on ? 'Working...' : (mode==='signin' ? 'Sign in' : 'Create account');
+  }
+  function setMode(next){
+    mode = next;
+    note('');
+    if(mode === 'signin'){
+      titleEl.innerHTML = 'Sign in to <em>continue</em>';
+      ledeEl.textContent = 'Clinic staff এর জন্য। Supabase account দিয়ে login করুন।';
+      submitBtn.textContent = 'Sign in';
+      passEl.setAttribute('autocomplete','current-password');
+      switchText.textContent = 'No account yet?';
+      switchBtn.textContent = 'Create one';
+      forgotBtn.classList.remove('hidden');
+    }else{
+      titleEl.innerHTML = 'Create your <em>account</em>';
+      ledeEl.textContent = 'Email confirmation চালু থাকলে inbox check করে link এ click করুন।';
+      submitBtn.textContent = 'Create account';
+      passEl.setAttribute('autocomplete','new-password');
+      switchText.textContent = 'Already registered?';
+      switchBtn.textContent = 'Sign in instead';
+      forgotBtn.classList.add('hidden');
+    }
+  }
+
+  function lock(){
+    unlocked = false;
+    document.body.classList.add('locked');
+    gate.classList.remove('hidden');
+    userChip.classList.add('hidden');
+    signOutBtn.classList.add('hidden');
+  }
+  function unlock(user){
+    if(unlocked) return;
+    unlocked = true;
+    document.body.classList.remove('locked');
+    gate.classList.add('hidden');
+    userChip.textContent = (user && user.email) ? user.email : 'Signed in';
+    userChip.classList.remove('hidden');
+    signOutBtn.classList.remove('hidden');
+    passEl.value = '';
+    /* Load real data now that the session exists. */
+    testConnection(); searchPatients(true); loadHistory();
+  }
+
+  async function submit(){
+    var email = emailEl.value.trim();
+    var password = passEl.value;
+    if(!email || !password){ note('Enter your email and password.','error'); return; }
+    if(mode === 'signup' && password.length < 6){ note('Password needs at least 6 characters.','error'); return; }
+
+    busy(true);
+    try{
+      if(mode === 'signin'){
+        var res = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+        if(res.error) throw res.error;
+        note('');
+        unlock(res.data.user);
+      }else{
+        var up = await supabaseClient.auth.signUp({ email: email, password: password });
+        if(up.error) throw up.error;
+        if(up.data.session){ note(''); unlock(up.data.user); }
+        else{ note('Account created. Check your inbox to confirm the email, then sign in.','ok'); setMode('signin'); }
+      }
+    }catch(err){
+      note(err.message || 'Sign in failed.','error');
+    }finally{
+      busy(false);
+    }
+  }
+
+  async function resetPassword(){
+    var email = emailEl.value.trim();
+    if(!email){ note('Enter your email first, then press Reset password.','error'); return; }
+    busy(true);
+    try{
+      var r = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+      if(r.error) throw r.error;
+      note('Reset link sent. Check your inbox.','ok');
+    }catch(err){
+      note(err.message || 'Could not send the reset link.','error');
+    }finally{
+      busy(false);
+    }
+  }
+
+  async function signOut(){
+    try{ await supabaseClient.auth.signOut(); }catch(e){}
+    lock();
+    setMode('signin');
+    note('Signed out.','info');
+  }
+
+  submitBtn.onclick = submit;
+  forgotBtn.onclick = resetPassword;
+  switchBtn.onclick = function(){ setMode(mode === 'signin' ? 'signup' : 'signin'); };
+  signOutBtn.onclick = signOut;
+  [emailEl, passEl].forEach(function(el){
+    el.addEventListener('keydown', function(e){ if(e.key === 'Enter') submit(); });
+  });
+
+  setMode('signin');
+  lock();
+
+  supabaseClient.auth.getSession().then(function(r){
+    if(r && r.data && r.data.session) unlock(r.data.session.user);
+    else emailEl.focus();
+  }).catch(function(){ /* stay locked */ });
+
+  supabaseClient.auth.onAuthStateChange(function(event, session){
+    if(!session || event === 'SIGNED_OUT'){ lock(); return; }
+    if(event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') unlock(session.user);
+  });
+})();
 </script>
 </body>
 </html>
